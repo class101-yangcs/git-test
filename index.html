@@ -3,21 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>입주 전 실행과제 관리</title>
+<title>입주 실행과제 관리</title>
 <style>
 :root{
   --bg:#f6f7f9;--card:#fff;--text:#1f2430;--muted:#6b7280;--line:#e5e7eb;--accent:#2f6fed;
   --todo:#9ca3af;--doing:#2f6fed;--done:#16a34a;--hold:#d97706;--late:#dc2626;
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#14161b;--card:#1d2027;--text:#e8eaf0;--muted:#9aa1b0;--line:#2c313b;--accent:#6c9bff;}
+  :root:not([data-theme="light"]){--bg:#14161b;--card:#1d2027;--text:#e8eaf0;--muted:#9aa1b0;--line:#2c313b;--accent:#6c9bff;color-scheme:dark}
 }
+:root[data-theme="dark"]{--bg:#14161b;--card:#1d2027;--text:#e8eaf0;--muted:#9aa1b0;--line:#2c313b;--accent:#6c9bff;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
-header{padding:20px 16px 8px;max-width:1100px;margin:0 auto}
+body{margin:0;padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+header{padding:20px 0 8px;max-width:1100px;margin:0 auto}
 h1{margin:0 0 4px;font-size:20px}
 .sub{color:var(--muted);font-size:13px}
-main{max-width:1100px;margin:0 auto;padding:0 16px 60px}
+main{max-width:1100px;margin:0 auto;padding:0 0 60px}
 .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:12px 0}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
 .stat b{display:block;font-size:22px}
@@ -27,21 +28,21 @@ main{max-width:1100px;margin:0 auto;padding:0 16px 60px}
 .bar i{display:block;height:100%;background:var(--done);width:0;transition:width .3s}
 .tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .tools input,.tools select,button{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
-.tools input[type=search]{flex:1;min-width:160px}
 button{cursor:pointer}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 button.danger{color:var(--late)}
 .group{margin-top:18px}
 .group h2{font-size:15px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:baseline}
 .group h2 small{color:var(--muted);font-weight:400}
+.title,.note,.meta{min-width:0;overflow-wrap:anywhere}
 .task{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--todo);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:grid;gap:6px}
 .task.s-doing{border-left-color:var(--doing)}
 .task.s-done{border-left-color:var(--done);opacity:.75}
 .task.s-hold{border-left-color:var(--hold)}
 .task.late{border-left-color:var(--late)}
-.top{display:flex;gap:8px;align-items:flex-start}
-.no{color:var(--muted);min-width:22px}
-.title{flex:1;font-weight:600;cursor:pointer}
+.top{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.no{color:var(--muted);min-width:0;margin-right:-4px;font-variant-numeric:tabular-nums}
+.title{flex:1;min-width:0;font-size:16.5px;line-height:1.4;font-weight:700;cursor:pointer}
 .s-done .title{text-decoration:line-through}
 .meta{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--muted);font-size:12.5px}
 .meta b{color:var(--text);font-weight:500}
@@ -49,7 +50,13 @@ button.danger{color:var(--late)}
 .b-late{color:var(--late)}.b-soon{color:var(--hold)}.b-ok{color:var(--muted)}.b-done{color:var(--done)}
 .note{font-size:12.5px;white-space:pre-wrap;background:var(--bg);border-radius:6px;padding:6px 8px}
 .last{font-size:12.5px;color:var(--muted)}
-select.st{font-weight:600}
+select.st{--c:var(--todo);appearance:none;-webkit-appearance:none;cursor:pointer;font-weight:600;font-size:12.5px;border-radius:99px;padding:4px 28px 4px 12px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background-color:color-mix(in srgb,var(--c) 14%,var(--card));color:color-mix(in srgb,var(--c) 70%,var(--text));background-image:linear-gradient(45deg,transparent 50%,var(--c) 50%),linear-gradient(135deg,var(--c) 50%,transparent 50%);background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;transition:box-shadow .15s,background-color .15s}
+select.st:hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent)}
+select.st:focus-visible{outline:2px solid var(--c);outline-offset:2px}
+select.st[data-s="진행중"]{--c:var(--doing)}
+select.st[data-s="완료"]{--c:var(--done)}
+select.st[data-s="보류"]{--c:var(--hold)}
+select.st option{color:var(--text);background:var(--card);font-weight:500}
 dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);width:min(560px,94vw);padding:16px}
 dialog::backdrop{background:rgba(0,0,0,.4)}
 dialog label{display:block;font-size:12px;color:var(--muted);margin-top:10px}
@@ -58,6 +65,22 @@ dialog input,dialog select,dialog textarea{width:100%;font:inherit;color:var(--t
 .actions{display:flex;gap:8px;justify-content:space-between;margin-top:16px}
 .log{margin-top:8px;font-size:12.5px;max-height:130px;overflow:auto}
 .log div{padding:3px 0;border-bottom:1px dashed var(--line)}
+.memo-btn{background:none;border:0;padding:2px 0;color:var(--muted);font-size:12.5px;text-align:left;cursor:pointer}
+.memo-btn:hover{color:var(--text)}
+.memos{display:grid;gap:4px;background:var(--bg);border-radius:8px;padding:8px}
+.memos .m{display:flex;gap:8px;align-items:flex-start;font-size:11.5px}
+.memos .m time{color:var(--muted);font-size:10.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.memos .m span{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.memos .m button{border:0;background:none;color:var(--muted);padding:0 4px;cursor:pointer}
+.memos form{display:flex;gap:6px;margin-top:4px}
+.memos form button{font-size:12px;padding:5px 10px}
+.last{font-size:11.5px}
+.memos form input{flex:1;min-width:0;font:inherit;font-size:12px;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+.guide{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:12px 0}
+.guide summary{cursor:pointer;font-weight:600}
+.guide ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px}
+.guide p{margin:8px 0 0;color:var(--muted);font-size:13px}
+.toast{position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:20}
 .empty{text-align:center;color:var(--muted);padding:30px}
 footer{color:var(--muted);font-size:12px;margin-top:24px}
 </style>
@@ -65,26 +88,29 @@ footer{color:var(--muted);font-size:12px;margin-top:24px}
 <body>
 <header>
   <h1>🏠 입주 전 실행과제 관리</h1>
-  <div class="sub">입주 전까지 반드시 진행해야 하는 건 · 담당자/일정 확정 및 진행상황 추적 · <span id="today"></span></div>
+  <div class="sub">입주 전까지 반드시 진행해야 하는 건 · 담당자·일정 확인 · <span id="today"></span></div>
 </header>
 <main>
+  <details class="guide" open>
+    <summary>사용 방법</summary>
+    <ol>
+      <li><b>진행 내용은 각 과제 아래 "메모"에 남겨 주세요.</b> 입력창에 한 줄 쓰고 Enter를 누르면 날짜·시간과 함께 기록됩니다. (예: "업체 2곳 견적 요청함, 다음 주 회신 예정")</li>
+      <li>과제 오른쪽 드롭다운에서 <b>상태</b>(미착수 · 진행중 · 완료 · 보류)를 바꿔 주세요. 시작하면 "진행중", 끝나면 "완료"로 바꿉니다.</li>
+    </ol>
+  </details>
+
   <div class="summary" id="summary"></div>
   <div class="bar" title="완료율"><i id="bar"></i></div>
 
   <div class="tools">
-    <input type="search" id="q" placeholder="검색 (업무, 담당자, 비고)">
     <select id="fOwner"><option value="">담당자 전체</option></select>
     <select id="fCat"><option value="">구분 전체</option></select>
     <button class="primary" id="add">＋ 과제 추가</button>
-    <button id="export">내보내기</button>
-    <button id="import">가져오기</button>
-    <input type="file" id="file" accept="application/json" hidden>
   </div>
 
   <div id="list"></div>
   <footer>
-    데이터는 이 브라우저(localStorage)에 저장됩니다. 팀과 공유하려면 <b>내보내기</b>로 JSON을 저장해 공유하고 상대는 <b>가져오기</b>로 불러오세요.
-    <button id="reset" class="danger" style="float:right">초기 데이터로 되돌리기</button>
+    <span id="sync">저장소 확인 중…</span>
   </footer>
 </main>
 
@@ -95,7 +121,6 @@ footer{color:var(--muted);font-size:12px;margin-top:24px}
     <datalist id="cats"></datalist>
     <label>세부 업무 <textarea name="title" rows="2" required></textarea></label>
     <div class="row2">
-      <label>제안 <input name="proposer"></label>
       <label>상태
         <select name="status"><option>미착수</option><option>진행중</option><option>완료</option><option>보류</option></select>
       </label>
@@ -118,40 +143,96 @@ footer{color:var(--muted);font-size:12px;margin-top:24px}
 </dialog>
 
 <script>
-const KEY = "moveInTasks.v1";
 const STATUSES = ["미착수","진행중","완료","보류"];
 const d = s => s; // dates kept as ISO strings
 const SEED = [
- {id:1,cat:"① 계약·자금",title:"임차계약조건 최종 협의 (세대별 전세보증금액 및 자금 준비 일정 확인)",proposer:"찬승, 희원",owner:"임한결",sub:"양찬승",start:"2026-11-01",due:"2027-02-28",note:""},
- {id:2,cat:"① 계약·자금",title:"건물/토지 감정평가 의뢰 (HUG)",proposer:"찬승",owner:"양찬승",sub:"임한결",start:"2026-12-10",due:"2026-12-31",note:"1월말 전세대출 접수 가능하도록 셋업 계획.\n→ 12월 초 감정평가 받도록 착수일을 1개월 앞당김"},
- {id:3,cat:"② 공사·시설 (자체 준비 필요)",title:"옥상 공간 조성 방안",proposer:"한결, 정현",owner:"인테리어TF",sub:"",start:"2026-10-01",due:"",note:""},
- {id:4,cat:"② 공사·시설 (자체 준비 필요)",title:"전기차 충전소 관련 (기기/업체 선정, 설치, 정산 등)",proposer:"정현",owner:"손택근",sub:"",start:"2027-02-01",due:"2027-02-28",note:""},
- {id:5,cat:"② 공사·시설 (자체 준비 필요)",title:"태양광 판넬 (기기/업체 선정, 설치, 정산 등)",proposer:"한결",owner:"박영미",sub:"송정현",start:"2027-01-01",due:"",note:"공공지원 등 고려 필요"},
- {id:6,cat:"③ 공용 가구·가전",title:"공용부 기증·구매 가구/가전 리스트 취합 (아동용품 포함)",proposer:"희원",owner:"인테리어TF",sub:"",start:"2026-10-01",due:"",note:""},
- {id:7,cat:"③ 공용 가구·가전",title:"공동육아실 대형 기물·시설 리스트 작성",proposer:"희원",owner:"박석원",sub:"김은혜",start:"2026-10-01",due:"",note:""},
- {id:8,cat:"④ 입주 일정",title:"세대별 입주 일정 확인 (가구별 입주 스케줄 공유 시트 만들기)",proposer:"희원",owner:"",sub:"",start:"2026-09-20",due:"",note:"2月 중: 하늘\n2月 말: 하담, 새봄, 이든\n3月 초: 룬슬\n3月 중: 쌀살, 튼튼, 푸른\n4月 초: 시완"},
- {id:9,cat:"⑤ 공용공간별 이용 및 관리규칙",title:"주차장",proposer:"한결",owner:"김성현",sub:"",start:"2026-10-01",due:"2027-02-28",note:"혜림교회 월주차 2만원 (확인필요)"},
- {id:10,cat:"⑤ 공용공간별 이용 및 관리규칙",title:"2층 공용공간",proposer:"",owner:"우명진",sub:"박영미, 최희원",start:"2026-10-01",due:"2027-02-28",note:"GX 담당: 최희원"},
- {id:11,cat:"⑤ 공용공간별 이용 및 관리규칙",title:"공동육아실",proposer:"",owner:"김지윤",sub:"박민지",start:"2026-10-01",due:"2027-02-28",note:""},
- {id:12,cat:"⑤ 공용공간별 이용 및 관리규칙",title:"공용식당 (주방, 게스트 식당, 공동식사 포함)",proposer:"",owner:"송서연",sub:"정자연",start:"2026-10-01",due:"2027-02-28",note:""},
- {id:13,cat:"⑤ 공용공간별 이용 및 관리규칙",title:"게스트룸, 지하창고, 옥상/계단실 등 기타 공용공간",proposer:"",owner:"김형권",sub:"",start:"2026-10-01",due:"2027-02-28",note:""},
- {id:14,cat:"⑥ 공동체 운영",title:"자립준비청년 관계형성 계획 및 202호 운영 방안 (입주~퇴소 운영 방식·참여 독려 방안, 공실활용)",proposer:"찬승/정현",owner:"김대현",sub:"오승환",start:"2026-11-01",due:"2027-02-28",note:""},
- {id:15,cat:"⑥ 공동체 운영",title:"연마을 송년 워크샵",proposer:"한결",owner:"이사회",sub:"",start:"2026-11-01",due:"2026-11-30",note:""},
- {id:16,cat:"⑥ 공동체 운영",title:"공용부 화재보험·배상책임보험 검토",proposer:"찬승",owner:"김성현",sub:"",start:"2027-01-01",due:"2027-02-28",note:""}
+ {id:1,cat:"① 계약·자금",title:"임차계약조건 최종 협의 (세대별 전세보증금액 및 자금 준비 일정 확인)",owner:"임한결",sub:"양찬승",start:"2026-11-01",due:"2027-02-28",note:""},
+ {id:2,cat:"① 계약·자금",title:"건물/토지 감정평가 의뢰 (HUG)",owner:"양찬승",sub:"임한결",start:"2026-12-10",due:"2026-12-31",note:"1월말 전세대출 접수 가능하도록 셋업 계획.\n→ 12월 초 감정평가 받도록 착수일을 1개월 앞당김"},
+ {id:3,cat:"② 공사·시설 (자체 준비 필요)",title:"옥상 공간 조성 방안",owner:"인테리어TF",sub:"",start:"2026-10-01",due:"",note:""},
+ {id:4,cat:"② 공사·시설 (자체 준비 필요)",title:"전기차 충전소 관련 (기기/업체 선정, 설치, 정산 등)",owner:"손택근",sub:"",start:"2027-02-01",due:"2027-02-28",note:""},
+ {id:5,cat:"② 공사·시설 (자체 준비 필요)",title:"태양광 판넬 (기기/업체 선정, 설치, 정산 등)",owner:"박영미",sub:"송정현",start:"2027-01-01",due:"",note:"공공지원 등 고려 필요"},
+ {id:6,cat:"③ 공용 가구·가전",title:"공용부 기증·구매 가구/가전 리스트 취합 (아동용품 포함)",owner:"인테리어TF",sub:"",start:"2026-10-01",due:"",note:""},
+ {id:7,cat:"③ 공용 가구·가전",title:"공동육아실 대형 기물·시설 리스트 작성",owner:"박석원",sub:"김은혜",start:"2026-10-01",due:"",note:""},
+ {id:8,cat:"④ 입주 일정",title:"세대별 입주 일정 확인 (가구별 입주 스케줄 공유 시트 만들기)",owner:"",sub:"",start:"2026-09-20",due:"",note:"2月 중: 하늘\n2月 말: 하담, 새봄, 이든\n3月 초: 룬슬\n3月 중: 쌀살, 튼튼, 푸른\n4月 초: 시완"},
+ {id:9,cat:"⑤ 공용공간별 이용 및 관리규칙",title:"주차장",owner:"김성현",sub:"",start:"2026-10-01",due:"2027-02-28",note:"혜림교회 월주차 2만원 (확인필요)"},
+ {id:10,cat:"⑤ 공용공간별 이용 및 관리규칙",title:"2층 공용공간",owner:"우명진",sub:"박영미, 최희원",start:"2026-10-01",due:"2027-02-28",note:"GX 담당: 최희원"},
+ {id:11,cat:"⑤ 공용공간별 이용 및 관리규칙",title:"공동육아실",owner:"김지윤",sub:"박민지",start:"2026-10-01",due:"2027-02-28",note:""},
+ {id:12,cat:"⑤ 공용공간별 이용 및 관리규칙",title:"공용식당 (주방, 게스트 식당, 공동식사 포함)",owner:"송서연",sub:"정자연",start:"2026-10-01",due:"2027-02-28",note:""},
+ {id:13,cat:"⑤ 공용공간별 이용 및 관리규칙",title:"게스트룸, 지하창고, 옥상/계단실 등 기타 공용공간",owner:"김형권",sub:"",start:"2026-10-01",due:"2027-02-28",note:""},
+ {id:14,cat:"⑥ 공동체 운영",title:"자립준비청년 관계형성 계획 및 202호 운영 방안 (입주~퇴소 운영 방식·참여 독려 방안, 공실활용)",owner:"김대현",sub:"오승환",start:"2026-11-01",due:"2027-02-28",note:""},
+ {id:15,cat:"⑥ 공동체 운영",title:"연마을 송년 워크샵",owner:"이사회",sub:"",start:"2026-11-01",due:"2026-11-30",note:""},
+ {id:16,cat:"⑥ 공동체 운영",title:"공용부 화재보험·배상책임보험 검토",owner:"김성현",sub:"",start:"2027-01-01",due:"2027-02-28",note:""}
 ].map(t=>({...t,status:"미착수",log:[]}));
+
+/* ===== 공유 저장소 설정 =====
+ * Firebase Realtime Database 주소를 아래에 넣으세요. (README.md 참고)
+ * 예: "https://my-project-default-rtdb.asia-southeast1.firebasedatabase.app"
+ * 비워 두면 저장 없이 이 화면에서만 유지됩니다. */
+const FIREBASE_URL = "";
+
+// Firebase REST를 간단한 문서 저장소 형태로 감싼 어댑터 (로그인 불필요, 5초마다 새로고침)
+function makeDb(base){
+  const subs = {}, last = {};
+  const rest = (method, path, body) => fetch(`${base}/${path}.json`, {method, headers:{"Content-Type":"application/json"}, body: body===undefined ? undefined : JSON.stringify(body)})
+    .then(r => { if(!r.ok) throw {code: r.status===401||r.status===403 ? "invalid_argument" : "unavailable"}; });
+  async function pull(c){
+    const r = await fetch(`${base}/${c}.json`);
+    if(!r.ok) throw new Error(r.status);
+    const o = (await r.json()) || {};
+    const s = JSON.stringify(o);
+    if(last[c]===s) return;
+    last[c] = s;
+    const snap = {docs:Object.entries(o).map(([k,d]) => ({id:k.slice(1), data:()=>d}))};
+    (subs[c]||[]).forEach(x => x.next(snap));
+  }
+  const refresh = c => pull(c).catch(()=>{});
+  setInterval(() => { if(!document.hidden) Object.keys(subs).forEach(refresh); }, 5000);
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) Object.keys(subs).forEach(refresh); });
+  return {
+    collection: c => ({
+      onSnapshot(next, error){ (subs[c] ||= []).push({next, error}); pull(c).catch(error); return () => {}; },
+      async add(d){ const id = "m"+Date.now()+Math.random().toString(36).slice(2,6); await rest("PUT", `${c}/k${id}`, d); await refresh(c); }
+    }),
+    doc: path => { const [c,id] = path.split("/"); return {
+      async set(d){ await rest("PUT", `${c}/k${id}`, d); await refresh(c); },
+      async delete(){ await rest("DELETE", `${c}/k${id}`); await refresh(c); }
+    }; }
+  };
+}
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const todayStr = () => { const t=new Date(); return new Date(t-t.getTimezoneOffset()*6e4).toISOString().slice(0,10); };
 const days = (a,b) => Math.round((new Date(a)-new Date(b))/864e5);
 
-let tasks, filter = {status:"",q:"",owner:"",cat:""}, editing = null;
+let db = null, tasks = [], over = {}, memos = [], refocus = null;
+let filter = {status:"",q:"",owner:"",cat:""}, editing = null;
 
-function load(){
-  try{ const r=JSON.parse(localStorage.getItem(KEY)); if(Array.isArray(r)) return r; }catch(e){}
-  return structuredClone(SEED);
+// 기본 과제(SEED) 위에 공유 저장소의 변경분(over)과 메모(memos)를 합쳐 화면용 목록을 만든다
+function compute(){
+  const byTask = {};
+  memos.forEach(m => (byTask[m.taskId] ||= []).push(m));
+  const list = SEED.map(t => ({...t, ...(over[t.id]||{})}));
+  Object.values(over).filter(o => o.custom).sort((a,b)=>a.id-b.id).forEach(o => list.push({status:"미착수",...o}));
+  tasks = list.filter(t => !t.deleted).map(t => ({...t, log:(byTask[t.id]||[]).sort((a,b)=>(a.ts||0)-(b.ts||0))}));
 }
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify(tasks)); }catch(e){} }
+function fail(e){ toast(e && e.code==="invalid_argument" ? "저장 권한이 없습니다. Firebase 규칙을 확인해 주세요" : "저장하지 못했습니다. 잠시 후 다시 시도해 주세요"); }
+async function saveTask(id, patch){
+  const cur = {...(over[id]||{}), ...patch};
+  over[id] = cur; compute(); render();
+  if(!db) return;
+  try{ await db.doc("tasks/"+id).set(cur); }catch(e){ fail(e); }
+}
+async function addMemo(taskId, text){
+  const n = new Date();
+  const data = {taskId, text, date:todayStr(), time:n.toTimeString().slice(0,5), ts:Date.now()};
+  if(!db){ memos.push({...data,id:"l"+data.ts}); compute(); render(); return; }
+  try{ await db.collection("memos").add(data); }catch(e){ fail(e); }
+}
+async function delMemo(id){
+  if(!db){ memos = memos.filter(m=>m.id!==id); compute(); render(); return; }
+  try{ await db.doc("memos/"+id).delete(); }catch(e){ fail(e); }
+}
 
 function people(t){ return [t.owner,...String(t.sub||"").split(/[,，]/)].map(s=>s.trim()).filter(Boolean); }
 function isLate(t){ return t.status!=="완료" && t.status!=="보류" && ((t.due && t.due<todayStr()) || (t.status==="미착수" && t.start && t.start<todayStr())); }
@@ -171,7 +252,7 @@ function visible(t){
   if(filter.owner && !people(t).includes(filter.owner)) return false;
   if(filter.cat && t.cat!==filter.cat) return false;
   if(filter.q){
-    const hay=[t.title,t.owner,t.sub,t.proposer,t.note,t.cat].join(" ").toLowerCase();
+    const hay=[t.title,t.owner,t.sub,t.note,t.cat].join(" ").toLowerCase();
     if(!hay.includes(filter.q.toLowerCase())) return false;
   }
   return true;
@@ -193,7 +274,21 @@ function renderFilters(){
   $("#cats").innerHTML = cats.map(o=>`<option value="${esc(o)}">`).join("");
 }
 
+const openMemo = new Set();
+function memoHtml(t){
+  const log = t.log||[], n = log.length;
+  const head = `<div class="last">메모 ${n}건</div>`;
+  return head+`<div class="memos">`+[...log].slice().reverse().map(l=>`<div class="m"><time>${l.date}${l.time?" "+l.time:""}</time><span>${esc(l.text)}</span><button type="button" data-delmemo="${l.id}" title="메모 삭제" aria-label="메모 삭제">×</button></div>`).join("")+`<form data-addmemo><input name="m" placeholder="진행 내용을 메모하세요 (Enter로 저장)" aria-label="메모 입력"><button class="primary" type="submit">추가</button></form></div>`;
+}
 function renderList(){
+  const typed = {}; let focusId = null;
+  document.querySelectorAll(".task .memos input").forEach(i => { const id=i.closest(".task").dataset.id; if(i.value) typed[id]=i.value; if(i===document.activeElement) focusId=id; });
+  drawList();
+  Object.entries(typed).forEach(([id,v]) => { const i=document.querySelector(`.task[data-id="${id}"] .memos input`); if(i) i.value=v; });
+  const fid = refocus ?? focusId; refocus = null;
+  if(fid!=null){ const i=document.querySelector(`.task[data-id="${fid}"] .memos input`); if(i) i.focus(); }
+}
+function drawList(){
   const vis = tasks.filter(visible);
   if(!vis.length){ $("#list").innerHTML=`<div class="empty">조건에 맞는 과제가 없습니다.</div>`; return; }
   const groups = {};
@@ -207,17 +302,16 @@ function renderList(){
           <span class="no">${t.id}</span>
           <span class="title" data-edit>${esc(t.title)}</span>
           ${dueBadge(t)}
-          <select class="st" data-st>${STATUSES.map(s=>`<option ${s===t.status?"selected":""}>${s}</option>`).join("")}</select>
+          <select class="st" data-st data-s="${t.status}" aria-label="상태">${STATUSES.map(s=>`<option ${s===t.status?"selected":""}>${s}</option>`).join("")}</select>
         </div>
         <div class="meta">
           <span>담당(정) <b>${esc(t.owner)||"미정"}</b></span>
           ${t.sub?`<span>담당(부) <b>${esc(t.sub)}</b></span>`:""}
-          ${t.proposer?`<span>제안 <b>${esc(t.proposer)}</b></span>`:""}
           <span>착수 <b>${t.start||"-"}</b></span>
           <span>완료 <b>${t.due||"-"}</b></span>
         </div>
         ${t.note?`<div class="note">${esc(t.note)}</div>`:""}
-        ${last?`<div class="last">📝 ${last.date} · ${esc(last.text)}${t.log.length>1?` (외 ${t.log.length-1}건)`:""}</div>`:""}
+        ${memoHtml(t)}
       </article>`;
     }).join("")+`</section>`;
   }).join("");
@@ -228,60 +322,68 @@ function render(){ renderSummary(); renderFilters(); renderList(); }
 /* events */
 $("#today").textContent = "오늘 " + todayStr();
 $("#summary").onclick = e => { const s=e.target.closest(".stat"); if(!s) return; filter.status = filter.status===s.dataset.k? "" : s.dataset.k; render(); };
-$("#q").oninput = e => { filter.q=e.target.value; renderList(); };
 $("#fOwner").onchange = e => { filter.owner=e.target.value; renderList(); };
 $("#fCat").onchange = e => { filter.cat=e.target.value; renderList(); };
-$("#list").onclick = e => { if(e.target.closest("[data-edit]")) openEdit(+e.target.closest(".task").dataset.id); };
+const taskOf = el => tasks.find(x=>x.id==el.closest(".task").dataset.id);
+$("#list").onclick = e => {
+  if(e.target.closest("[data-edit]")) return openEdit(+e.target.closest(".task").dataset.id);
+  const del = e.target.closest("[data-delmemo]");
+  if(del) delMemo(del.dataset.delmemo);
+};
+$("#list").onsubmit = e => {
+  if(!e.target.matches("[data-addmemo]")) return;
+  e.preventDefault();
+  const t = taskOf(e.target), v = e.target.m.value.trim(); if(!v) return;
+  e.target.m.value = ""; refocus = t.id;
+  addMemo(t.id, v);
+};
 $("#list").onchange = e => {
   if(!e.target.matches("[data-st]")) return;
-  const t = tasks.find(x=>x.id==e.target.closest(".task").dataset.id);
-  t.status = e.target.value; save(); render();
+  saveTask(taskOf(e.target).id, {status:e.target.value});
 };
 
 function openEdit(id){
   editing = id ? tasks.find(t=>t.id===id) : null;
   const f = $("#form");
-  const t = editing || {cat:filter.cat||"",title:"",proposer:"",owner:"",sub:"",start:"",due:"",status:"미착수",note:"",log:[]};
-  ["cat","title","proposer","owner","sub","start","due","status","note"].forEach(k=>f[k].value=t[k]||"");
+  const t = editing || {cat:filter.cat||"",title:"",owner:"",sub:"",start:"",due:"",status:"미착수",note:"",log:[]};
+  ["cat","title","owner","sub","start","due","status","note"].forEach(k=>f[k].value=t[k]||"");
   f.newlog.value="";
   $("#dlgTitle").textContent = editing? `과제 ${t.id} 편집` : "새 과제 추가";
   $("#del").style.display = editing? "" : "none";
-  $("#logs").innerHTML = [...(t.log||[])].reverse().map(l=>`<div>${l.date} · ${esc(l.text)}</div>`).join("");
+  $("#logs").innerHTML = [...(t.log||[])].reverse().map(l=>`<div>${l.date} ${l.time||""} · ${esc(l.text)}</div>`).join("");
   $("#dlg").showModal();
 }
 $("#add").onclick = () => openEdit(0);
 $("#cancel").onclick = () => $("#dlg").close();
-$("#del").onclick = () => { if(confirm("이 과제를 삭제할까요?")){ tasks=tasks.filter(t=>t!==editing); save(); render(); $("#dlg").close(); } };
+armed($("#del"),"한 번 더 누르면 삭제",()=>{ saveTask(editing.id,{deleted:true}); $("#dlg").close(); });
 $("#form").onsubmit = e => {
   const f = e.target;
-  const data = Object.fromEntries(["cat","title","proposer","owner","sub","start","due","status","note"].map(k=>[k,f[k].value.trim()]));
-  let t = editing;
-  if(!t){ t={id:Math.max(0,...tasks.map(x=>x.id))+1,log:[]}; tasks.push(t); }
-  Object.assign(t,data);
-  t.log ||= [];
-  if(f.newlog.value.trim()) t.log.push({date:todayStr(),text:f.newlog.value.trim()});
-  save(); render();
+  const data = Object.fromEntries(["cat","title","owner","sub","start","due","status","note"].map(k=>[k,f[k].value.trim()]));
+  const id = editing ? editing.id : Date.now();
+  saveTask(id, editing ? data : {...data, id, custom:true});
+  if(f.newlog.value.trim()) addMemo(id, f.newlog.value.trim());
 };
 
-$("#export").onclick = () => {
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([JSON.stringify(tasks,null,2)],{type:"application/json"}));
-  a.download=`실행과제_${todayStr()}.json`; a.click(); URL.revokeObjectURL(a.href);
-};
-$("#import").onclick = () => $("#file").click();
-$("#file").onchange = async e => {
-  const f=e.target.files[0]; if(!f) return;
-  try{
-    const r=JSON.parse(await f.text());
-    if(!Array.isArray(r)||!r.every(t=>t.id&&t.title)) throw 0;
-    if(confirm("현재 데이터를 불러온 파일로 덮어쓸까요?")){ tasks=r; save(); render(); }
-  }catch(_){ alert("올바른 JSON 파일이 아닙니다."); }
-  e.target.value="";
-};
-$("#reset").onclick = () => { if(confirm("모든 진행상황이 지워지고 초기 데이터로 돌아갑니다. 계속할까요?")){ tasks=structuredClone(SEED); save(); render(); } };
+function toast(m){ const e=document.createElement("div"); e.className="toast"; e.textContent=m; document.body.appendChild(e); setTimeout(()=>e.remove(),2200); }
+function armed(btn,label,fn){ // two-step confirm
+  let t; const orig=btn.textContent;
+  btn.addEventListener("click",()=>{
+    if(btn.dataset.arm){ clearTimeout(t); delete btn.dataset.arm; btn.textContent=orig; fn(); return; }
+    btn.dataset.arm="1"; btn.textContent=label;
+    t=setTimeout(()=>{ delete btn.dataset.arm; btn.textContent=orig; },3000);
+  });
+}
 
-tasks = load();
+compute();
 render();
+(async () => {
+  db = FIREBASE_URL ? makeDb(FIREBASE_URL.replace(/\/$/,"")) : null;
+  const sync = $("#sync");
+  if(!db){ sync.textContent = "저장소가 설정되지 않아 이 화면에서만 유지됩니다."; return; }
+  sync.textContent = "공유 저장소에 저장됩니다.";
+  db.collection("tasks").onSnapshot(s => { over = {}; s.docs.forEach(d => over[d.id] = d.data()); compute(); render(); }, () => { sync.textContent = "저장소 연결이 끊어졌습니다."; });
+  db.collection("memos").onSnapshot(s => { memos = s.docs.map(d => ({id:d.id, ...d.data()})); compute(); render(); }, () => {});
+})();
 </script>
 </body>
 </html>
