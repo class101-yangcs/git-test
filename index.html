@@ -87,6 +87,7 @@ dialog input,dialog select,dialog textarea{width:100%;font:inherit;color:var(--t
 .memos label.attach{display:inline-flex;align-items:center;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:5px 9px;background:var(--card);cursor:pointer;white-space:nowrap}
 #lb{max-width:96vw;padding:8px}
 #lb img{display:block;max-width:100%;max-height:86vh;margin:auto}
+.memos a,.note a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
 .toast{position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:20}
 .empty{text-align:center;color:var(--muted);padding:30px}
 footer{color:var(--muted);font-size:12px;margin-top:24px}
@@ -213,6 +214,21 @@ function makeDb(base){
 const $ = s => document.querySelector(s);
 const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const todayStr = () => { const t=new Date(); return new Date(t-t.getTimezoneOffset()*6e4).toISOString().slice(0,10); };
+// 이스케이프된 문자열 안의 http(s)/www 주소를 링크로 바꾼다 (ASCII 주소만, 뒤의 한글·문장부호는 제외)
+function linkify(s){
+  return s.replace(/((?:https?:\/\/|www\.)(?:(?!&quot;|&lt;|&gt;)[\x21-\x7E])+)/g, m => {
+    let url = m, tail = "";
+    for(;;){
+      const c = url.slice(-1);
+      if(url.endsWith("&amp;")){ tail = "&amp;"+tail; url = url.slice(0,-5); }
+      else if(/[.,;:!?'\]]/.test(c) || (c===")" && (url.match(/\)/g)||[]).length > (url.match(/\(/g)||[]).length)){ tail = c+tail; url = url.slice(0,-1); }
+      else break;
+    }
+    if(!/^(https?:\/\/|www\.)[^\s.]+/.test(url) || url.length < 8) return m;
+    const href = url.startsWith("www.") ? "https://"+url : url;
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>${tail}`;
+  });
+}
 const days = (a,b) => Math.round((new Date(a)-new Date(b))/864e5);
 
 let db = null, tasks = [], over = {}, memos = [], refocus = null;
@@ -347,7 +363,7 @@ function memoHtml(t){
   const log = t.log||[], n = log.length;
   const pend = (pending[t.id]||[]).map((f,i) => `<span class="chip">${esc(f.name)} · ${fmtSize(f.size)} <button type="button" data-rmpend="${i}" aria-label="첨부 취소">×</button></span>`).join("");
   return `<div class="last">메모 ${n}건</div><div class="memos">`
-    + [...log].reverse().map(l => `<div class="m"><time>${l.date}${l.time?" "+l.time:""}</time><span>${esc(l.text)}${attHtml(l)}</span><button type="button" data-delmemo="${l.id}" title="메모 삭제" aria-label="메모 삭제">×</button></div>`).join("")
+    + [...log].reverse().map(l => `<div class="m"><time>${l.date}${l.time?" "+l.time:""}</time><span>${linkify(esc(l.text))}${attHtml(l)}</span><button type="button" data-delmemo="${l.id}" title="메모 삭제" aria-label="메모 삭제">×</button></div>`).join("")
     + `<form data-addmemo><label class="attach" title="사진·파일 첨부">첨부<input type="file" multiple hidden data-attach></label><input name="m" placeholder="진행 내용을 메모하세요 (Enter로 저장)" aria-label="메모 입력"><button class="primary" type="submit">추가</button></form>`
     + (pend ? `<div class="att">${pend}</div>` : "") + `</div>`;
 }
@@ -385,7 +401,7 @@ function drawList(){
           <span>착수 <b>${t.start||"-"}</b></span>
           <span>완료 <b>${t.due||"-"}</b></span>
         </div>
-        ${t.note?`<div class="note">${esc(t.note)}</div>`:""}
+        ${t.note?`<div class="note">${linkify(esc(t.note))}</div>`:""}
         ${memoHtml(t)}
       </article>`;
     }).join("")+`</section>`;
