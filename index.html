@@ -75,7 +75,7 @@ dialog input,dialog select,dialog textarea{width:100%;font:inherit;color:var(--t
 .memos form{display:flex;gap:6px;margin-top:4px}
 .memos form button{font-size:12px;padding:5px 10px}
 .last{font-size:11.5px}
-.memos form input{flex:1;min-width:0;font:inherit;font-size:12px;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+.memos form [name=m]{flex:1;min-width:0;font:inherit;font-size:12px;line-height:1.45;resize:none;overflow-y:auto;max-height:9em;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
 .guide{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:12px 0}
 .guide summary{cursor:pointer;font-weight:600}
 .guide ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px}
@@ -140,7 +140,7 @@ footer{color:var(--muted);font-size:12px;margin-top:24px}
       <label>완료일(기한) <input type="date" name="due"></label>
     </div>
     <label>비고 <textarea name="note" rows="3"></textarea></label>
-    <label>진행 기록 추가 <input name="newlog" placeholder="오늘 진행 내용을 한 줄로 (저장 시 날짜와 함께 기록)"></label>
+    <label>진행 기록 추가 <textarea name="newlog" rows="2" placeholder="오늘 진행 내용 (저장 시 날짜와 함께 기록, 줄바꿈 가능)"></textarea></label>
     <div class="log" id="logs"></div>
     <div class="actions">
       <button type="button" class="danger" id="del">삭제</button>
@@ -364,20 +364,20 @@ function memoHtml(t){
   const pend = (pending[t.id]||[]).map((f,i) => `<span class="chip">${esc(f.name)} · ${fmtSize(f.size)} <button type="button" data-rmpend="${i}" aria-label="첨부 취소">×</button></span>`).join("");
   return `<div class="last">메모 ${n}건</div><div class="memos">`
     + [...log].reverse().map(l => `<div class="m"><time>${l.date}${l.time?" "+l.time:""}</time><span>${linkify(esc(l.text))}${attHtml(l)}</span><button type="button" data-delmemo="${l.id}" title="메모 삭제" aria-label="메모 삭제">×</button></div>`).join("")
-    + `<form data-addmemo><label class="attach" title="사진·파일 첨부">첨부<input type="file" multiple hidden data-attach></label><input name="m" placeholder="진행 내용을 메모하세요 (Enter로 저장)" aria-label="메모 입력"><button class="primary" type="submit">추가</button></form>`
+    + `<form data-addmemo><label class="attach" title="사진·파일 첨부">첨부<input type="file" multiple hidden data-attach></label><textarea name="m" rows="1" placeholder="진행 내용을 메모하세요" aria-label="메모 입력"></textarea><button class="primary" type="submit">추가</button></form>`
     + (pend ? `<div class="att">${pend}</div>` : "") + `</div>`;
 }
 function renderList(){
   const typed = {}; let focusId = null;
-  document.querySelectorAll(".task .memos input").forEach(i => { const id=i.closest(".task").dataset.id; if(i.value) typed[id]=i.value; if(i===document.activeElement) focusId=id; });
+  document.querySelectorAll(".task .memos [name=m]").forEach(i => { const id=i.closest(".task").dataset.id; if(i.value) typed[id]=i.value; if(i===document.activeElement) focusId=id; });
   drawList();
   document.querySelectorAll("img[data-fid]").forEach(img => {
     const id = img.dataset.fid, c = fileCache[id];
     if(c) img.src = c.data; else getFile(id).then(f => { if(f) img.src = f.data; });
   });
-  Object.entries(typed).forEach(([id,v]) => { const i=document.querySelector(`.task[data-id="${id}"] .memos input`); if(i) i.value=v; });
+  Object.entries(typed).forEach(([id,v]) => { const i=document.querySelector(`.task[data-id="${id}"] .memos [name=m]`); if(i){ i.value=v; growMemo(i); } });
   const fid = refocus ?? focusId; refocus = null;
-  if(fid!=null){ const i=document.querySelector(`.task[data-id="${fid}"] .memos input`); if(i) i.focus(); }
+  if(fid!=null){ const i=document.querySelector(`.task[data-id="${fid}"] .memos [name=m]`); if(i) i.focus(); }
 }
 function drawList(){
   const vis = tasks.filter(visible);
@@ -415,6 +415,14 @@ $("#today").textContent = "오늘 " + todayStr();
 $("#summary").onclick = e => { const s=e.target.closest(".stat"); if(!s) return; filter.status = filter.status===s.dataset.k? "" : s.dataset.k; render(); };
 $("#fOwner").onchange = e => { filter.owner=e.target.value; renderList(); };
 $("#fCat").onchange = e => { filter.cat=e.target.value; renderList(); };
+const growMemo = el => { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 150) + "px"; };
+const touchDevice = matchMedia("(pointer: coarse)").matches;
+// PC: Enter 저장, Shift+Enter 줄바꿈 / 터치 기기: Enter는 줄바꿈, "추가" 버튼으로 저장
+$("#list").addEventListener("input", e => { if(e.target.matches("[name=m]")) growMemo(e.target); });
+$("#list").addEventListener("keydown", e => {
+  if(e.key!=="Enter" || e.shiftKey || e.isComposing || touchDevice || !e.target.matches("[name=m]")) return;
+  e.preventDefault(); e.target.form.requestSubmit();
+});
 const taskOf = el => tasks.find(x=>x.id==el.closest(".task").dataset.id);
 $("#list").onclick = e => {
   if(e.target.closest("[data-edit]")) return openEdit(+e.target.closest(".task").dataset.id);
