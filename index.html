@@ -259,7 +259,8 @@ async function saveMemoText(id, text){
   if(!db){ Object.assign(m, data); compute(); render(); return; }
   try{ await db.doc("memos/"+id).set(data); }catch(e){ fail(e); }
 }
-const MAX_FILE = 5*1048576; // 사진이 아닌 파일의 최대 크기 (Firebase 한 항목 10MB 제한 안에서 base64 변환 후 약 6.7MB)
+const MAX_FILE = 20*1048576; // 사진이 아닌 파일의 최대 크기
+const CHUNK = 4000000; // Firebase 한 항목 제한(10MB)을 넘지 않도록 큰 파일은 4MB 단위로 쪼개 저장
 const pending = {}, fileCache = {}, fileLoading = {};
 const fmtSize = n => n>=1048576 ? (n/1048576).toFixed(1)+"MB" : Math.max(1,Math.round(n/1024))+"KB";
 const readDataURL = f => new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); });
@@ -286,26 +287,55 @@ async function addPending(taskId, fileList){
 }
 async function putFile(id, obj){
   fileCache[id] = obj;
-  if(db) await db.doc("files/"+id).set(obj);
+  if(!db) return 0;
+  if(obj.data.length <= CHUNK){ await db.doc("files/"+id).set(obj); return 0; }
+  const n = Math.ceil(obj.data.length / CHUNK);
+  for(let i=0; i<n; i++) await db.doc(`files/${id}c${i}`).set({d: obj.data.slice(i*CHUNK, (i+1)*CHUNK)});
+  await db.doc("files/"+id).set({name:obj.name, type:obj.type, size:obj.size, n}); // 조각을 모두 올린 뒤 마지막에 기록
+  return n;
+}
+async function delFileDocs(f){
+  delete fileCache[f.id];
+  await db.doc("files/"+f.id).delete();
+  for(let i=0; i<(f.n||0); i++) await db.doc(`files/${f.id}c${i}`).delete();
 }
 function getFile(id){
   if(fileCache[id]) return Promise.resolve(fileCache[id]);
   if(!db) return Promise.resolve(null);
-  return fileLoading[id] ||= db.doc("files/"+id).get().then(s => { const d = s.exists ? s.data() : null; if(d) fileCache[id]=d; delete fileLoading[id]; return d; }).catch(() => { delete fileLoading[id]; return null; });
+  return fileLoading[id] ||= (async () => {
+    try{
+      const s = await db.doc("files/"+id).get();
+      if(!s.exists) return null;
+      let d = s.data();
+      if(d.n){
+        const parts = [];
+        for(let i=0; i<d.n; i++){ const c = await db.doc(`files/${id}c${i}`).get(); if(!c.exists) return null; parts.push(c.data().d); }
+        d = {...d, data: parts.join("")};
+      }
+      fileCache[id] = d;
+      return d;
+    }catch(_){ return null; }
+    finally{ delete fileLoading[id]; }
+  })();
 }
 async function downloadFile(id, name){
+  toast("파일을 내려받는 중…");
   const f = await getFile(id);
   if(!f) return toast("파일을 불러오지 못했습니다");
-  const a = document.createElement("a"); a.href = f.data; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  const blob = await (await fetch(f.data)).blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 async function addMemo(taskId, text, pf=[]){
   const n = new Date();
   const files = [];
+  if(pf.length) toast(`첨부 ${pf.length}개 올리는 중… 큰 파일은 시간이 걸립니다`);
   try{
     for(const f of pf){
       const id = "f"+Date.now()+Math.random().toString(36).slice(2,6);
-      await putFile(id, {name:f.name, type:f.type, size:f.size, data:f.data});
-      files.push({id, name:f.name, type:f.type, size:f.size});
+      const n = await putFile(id, {name:f.name, type:f.type, size:f.size, data:f.data});
+      files.push({id, name:f.name, type:f.type, size:f.size, ...(n ? {n} : {})});
     }
   }catch(e){ fail(e); pending[taskId] = pf; renderList(); return; }
   const data = {taskId, text, date:todayStr(), time:n.toTimeString().slice(0,5), ts:Date.now(), ...(files.length ? {files} : {})};
@@ -318,7 +348,7 @@ async function delMemo(id){
   if(!db){ memos = memos.filter(x=>x.id!==id); compute(); render(); return; }
   try{
     await db.doc("memos/"+id).delete();
-    for(const f of files){ delete fileCache[f.id]; await db.doc("files/"+f.id).delete(); }
+    for(const f of files) await delFileDocs(f);
   }catch(e){ fail(e); }
 }
 
