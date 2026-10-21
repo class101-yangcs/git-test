@@ -71,11 +71,14 @@ dialog input,dialog select,dialog textarea{width:100%;font:inherit;color:var(--t
 .memos .m{display:flex;gap:8px;align-items:flex-start;font-size:11.5px}
 .memos .m time{color:var(--muted);font-size:10.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .memos .m span{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
-.memos .m button{border:0;background:none;color:var(--muted);padding:0 4px;cursor:pointer}
+.memos .m .mb{border:0;background:none;color:var(--muted);padding:0 4px;cursor:pointer}
 .memos form{display:flex;gap:6px;margin-top:4px}
 .memos form button{font-size:12px;padding:5px 10px}
+.memos .m form{flex:1;min-width:0;flex-direction:column;margin-top:0}
+.memos .ebtns{display:flex;gap:6px;justify-content:flex-end}
+.memos .edited{color:var(--muted);font-size:10.5px}
 .last{font-size:11.5px}
-.memos form [name=m]{flex:1;min-width:0;font:inherit;font-size:12px;line-height:1.45;resize:none;overflow-y:auto;max-height:9em;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+.memos form [name=m],.memos form [name=em]{flex:1;min-width:0;font:inherit;font-size:12px;line-height:1.45;resize:none;overflow-y:auto;max-height:9em;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
 .guide{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:12px 0}
 .guide summary{cursor:pointer;font-weight:600}
 .guide ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px}
@@ -249,6 +252,13 @@ async function saveTask(id, patch){
   if(!db) return;
   try{ await db.doc("tasks/"+id).set(cur); }catch(e){ fail(e); }
 }
+let editMemo = null; // 수정 중인 메모 {id, text}
+async function saveMemoText(id, text){
+  const m = memos.find(x => x.id===id); if(!m) return;
+  const {id:_, ...rest} = m, data = {...rest, text, edited:Date.now()};
+  if(!db){ Object.assign(m, data); compute(); render(); return; }
+  try{ await db.doc("memos/"+id).set(data); }catch(e){ fail(e); }
+}
 const pending = {}, fileCache = {}, fileLoading = {};
 const fmtSize = n => n>=1048576 ? (n/1048576).toFixed(1)+"MB" : Math.max(1,Math.round(n/1024))+"KB";
 const readDataURL = f => new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); });
@@ -363,14 +373,21 @@ function memoHtml(t){
   const log = t.log||[], n = log.length;
   const pend = (pending[t.id]||[]).map((f,i) => `<span class="chip">${esc(f.name)} · ${fmtSize(f.size)} <button type="button" data-rmpend="${i}" aria-label="첨부 취소">×</button></span>`).join("");
   return `<div class="last">메모 ${n}건</div><div class="memos">`
-    + [...log].reverse().map(l => `<div class="m"><time>${l.date}${l.time?" "+l.time:""}</time><span>${linkify(esc(l.text))}${attHtml(l)}</span><button type="button" data-delmemo="${l.id}" title="메모 삭제" aria-label="메모 삭제">×</button></div>`).join("")
+    + [...log].reverse().map(l => {
+        const tm = `<time>${l.date}${l.time?" "+l.time:""}</time>`;
+        if(editMemo && editMemo.id===l.id) return `<div class="m">${tm}<form data-memoform="${l.id}"><textarea name="em" rows="1" aria-label="메모 수정">${esc(editMemo.text)}</textarea><div class="ebtns"><button type="button" data-cancelmemo>취소</button><button class="primary" type="submit">저장</button></div></form></div>`;
+        return `<div class="m">${tm}<span>${linkify(esc(l.text))}${l.edited?` <small class="edited">(수정됨)</small>`:""}${attHtml(l)}</span><button type="button" class="mb" data-editmemo="${l.id}" title="메모 수정" aria-label="메모 수정">✎</button><button type="button" class="mb" data-delmemo="${l.id}" title="메모 삭제" aria-label="메모 삭제">×</button></div>`;
+      }).join("")
     + `<form data-addmemo><label class="attach" title="사진·파일 첨부">첨부<input type="file" multiple hidden data-attach></label><textarea name="m" rows="1" placeholder="진행 내용을 메모하세요" aria-label="메모 입력"></textarea><button class="primary" type="submit">추가</button></form>`
     + (pend ? `<div class="att">${pend}</div>` : "") + `</div>`;
 }
 function renderList(){
   const typed = {}; let focusId = null;
   document.querySelectorAll(".task .memos [name=m]").forEach(i => { const id=i.closest(".task").dataset.id; if(i.value) typed[id]=i.value; if(i===document.activeElement) focusId=id; });
+  const editFocus = document.activeElement && document.activeElement.matches && document.activeElement.matches("[name=em]");
   drawList();
+  document.querySelectorAll("[name=em]").forEach(growMemo);
+  if(editFocus || (editMemo && editMemo.focus)){ const t = document.querySelector("[name=em]"); if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); } if(editMemo) editMemo.focus = false; }
   document.querySelectorAll("img[data-fid]").forEach(img => {
     const id = img.dataset.fid, c = fileCache[id];
     if(c) img.src = c.data; else getFile(id).then(f => { if(f) img.src = f.data; });
@@ -418,14 +435,21 @@ $("#fCat").onchange = e => { filter.cat=e.target.value; renderList(); };
 const growMemo = el => { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 150) + "px"; };
 const touchDevice = matchMedia("(pointer: coarse)").matches;
 // PC: Enter 저장, Shift+Enter 줄바꿈 / 터치 기기: Enter는 줄바꿈, "추가" 버튼으로 저장
-$("#list").addEventListener("input", e => { if(e.target.matches("[name=m]")) growMemo(e.target); });
+$("#list").addEventListener("input", e => {
+  if(e.target.matches("[name=m],[name=em]")) growMemo(e.target);
+  if(e.target.matches("[name=em]") && editMemo) editMemo.text = e.target.value;
+});
 $("#list").addEventListener("keydown", e => {
-  if(e.key!=="Enter" || e.shiftKey || e.isComposing || touchDevice || !e.target.matches("[name=m]")) return;
+  if(e.key==="Escape" && e.target.matches("[name=em]")){ editMemo = null; return renderList(); }
+  if(e.key!=="Enter" || e.shiftKey || e.isComposing || touchDevice || !e.target.matches("[name=m],[name=em]")) return;
   e.preventDefault(); e.target.form.requestSubmit();
 });
 const taskOf = el => tasks.find(x=>x.id==el.closest(".task").dataset.id);
 $("#list").onclick = e => {
   if(e.target.closest("[data-edit]")) return openEdit(+e.target.closest(".task").dataset.id);
+  const ed = e.target.closest("[data-editmemo]");
+  if(ed){ const m = memos.find(x => x.id===ed.dataset.editmemo); if(m){ editMemo = {id:m.id, text:m.text, focus:true}; renderList(); } return; }
+  if(e.target.closest("[data-cancelmemo]")){ editMemo = null; return renderList(); }
   const del = e.target.closest("[data-delmemo]");
   if(del) return delMemo(del.dataset.delmemo);
   const rm = e.target.closest("[data-rmpend]");
@@ -436,6 +460,12 @@ $("#list").onclick = e => {
   if(im && im.src){ $("#lb img").src = im.src; $("#lb").showModal(); }
 };
 $("#list").onsubmit = e => {
+  if(e.target.matches("[data-memoform]")){
+    e.preventDefault();
+    const v = e.target.em.value.trim();
+    if(!v) return toast("내용을 입력해 주세요");
+    const id = editMemo.id; editMemo = null; renderList(); saveMemoText(id, v); return;
+  }
   if(!e.target.matches("[data-addmemo]")) return;
   e.preventDefault();
   const t = taskOf(e.target), v = e.target.m.value.trim(), pf = pending[t.id] || [];
