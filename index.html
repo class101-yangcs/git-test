@@ -259,6 +259,7 @@ async function saveMemoText(id, text){
   if(!db){ Object.assign(m, data); compute(); render(); return; }
   try{ await db.doc("memos/"+id).set(data); }catch(e){ fail(e); }
 }
+const MAX_FILE = 5*1048576; // 사진이 아닌 파일의 최대 크기 (Firebase 한 항목 10MB 제한 안에서 base64 변환 후 약 6.7MB)
 const pending = {}, fileCache = {}, fileLoading = {};
 const fmtSize = n => n>=1048576 ? (n/1048576).toFixed(1)+"MB" : Math.max(1,Math.round(n/1024))+"KB";
 const readDataURL = f => new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); });
@@ -277,7 +278,7 @@ async function addPending(taskId, fileList){
     if(list.length>=5){ toast("첨부는 메모당 5개까지입니다"); break; }
     try{
       if(file.type.startsWith("image/")) list.push(await shrinkImage(file));
-      else if(file.size>1048576) toast(`${file.name}: 1MB를 넘어 첨부할 수 없습니다`);
+      else if(file.size>MAX_FILE) toast(`${file.name}: ${fmtSize(MAX_FILE)}를 넘어 첨부할 수 없습니다`);
       else list.push({name:file.name, type:file.type||"application/octet-stream", size:file.size, data:await readDataURL(file)});
     }catch(_){ toast(`${file.name}을(를) 불러오지 못했습니다`); }
   }
