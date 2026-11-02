@@ -1,0 +1,1 @@
+rootProject.name = "rokid-translator"
