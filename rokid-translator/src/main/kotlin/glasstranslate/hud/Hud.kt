@@ -29,7 +29,7 @@ class HudFormatter(
     }
 
     fun selected(reply: Reply): HudFrame =
-        HudFrame(wrap(reply.en, maxCols).take(3) + wrap(reply.ko, maxCols).take(1))
+        HudFrame(wrap(reply.en, maxCols).take(3) + wrap(reply.ko, maxCols).take(2))
 
     /** 표시 폭 기준 줄바꿈. 영어는 단어 경계, 한글은 글자 단위로 자른다. */
     fun wrap(text: String, cols: Int): List<String> {

@@ -21,6 +21,17 @@ ANTHROPIC_API_KEY=... gradle run -q --console=plain   # 키 없으면 FakeTransl
 데모 입력: 영어 한 줄 = 상대 발화, `/1`~`/3` = 답변 선택, `/ko 문장` = 한국어→영어.
 `CLAUDE_MODEL` 환경변수로 모델 변경(기본 `claude-haiku-5-5`, 지연 우선).
 
+## 모의 시험 시뮬레이터 (컴퓨터 안에서 테스트)
+```bash
+gradle sim            # → http://localhost:8080  (PORT 환경변수로 변경)
+```
+브라우저가 글래스(마이크 + HUD) 역할을 하고, 서버는 실제 `ConversationPipeline`을 그대로 돌린다.
+- **HUD 화면**: 녹색 단색 HUD 모양으로 자막/답변 후보/선택 결과를 표시
+- **상대 발화 입력 3가지**: 마이크(Chrome 음성 인식) · 텍스트 입력 · 시나리오 자동 재생(카페/약속/길 묻기)
+- **내 답변**: 1·2·3 버튼(또는 키보드)으로 선택, 한국어 입력 → 영어 변환
+- **응답 시간 측정**: 발화 → 자막, 발화 → 답변 후보 (목표 자막 1.5초)
+- `ANTHROPIC_API_KEY`가 없으면 데모 대본 + 지연 흉내(`FakeTranslator`), 있으면 실제 Claude 번역
+
 ## 아직 안 된 것 (다음 단계)
 - Rokid SDK 오디오 수신/HUD 출력 어댑터 (SDK 문서·실기기 필요, Android 앱 모듈로 분리 예정)
 - 실제 스트리밍 STT 구현체, 화자 분리(내 목소리 제외), VAD

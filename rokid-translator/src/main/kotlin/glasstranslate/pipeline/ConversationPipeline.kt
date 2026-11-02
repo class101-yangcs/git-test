@@ -28,7 +28,7 @@ class ConversationPipeline(
     private val settings: Settings = Settings(),
     private val formatter: HudFormatter = HudFormatter(),
 ) {
-    private val history = mutableListOf<Turn>()
+    private val history: MutableList<Turn> = java.util.Collections.synchronizedList(mutableListOf())
     @Volatile var currentReplies: List<Reply> = emptyList(); private set
 
     fun history(): List<Turn> = history.toList()

@@ -20,3 +20,10 @@ application { mainClass.set("glasstranslate.MainKt") }
 tasks.test { useJUnitPlatform() }
 
 tasks.named<JavaExec>("run") { standardInput = System.`in` }
+
+tasks.register<JavaExec>("sim") {
+    group = "application"
+    description = "브라우저 기반 모의 시험 시뮬레이터 실행 (http://localhost:8080)"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("glasstranslate.sim.SimMainKt")
+}

@@ -98,18 +98,3 @@ class ClaudeTranslator(
             ?.jsonObject?.get("text")?.jsonPrimitive?.content.orEmpty()
     }
 }
-
-/** API 키 없이 파이프라인을 시험하기 위한 가짜 구현. */
-class FakeTranslator : Translator {
-    override suspend fun translate(english: String, history: List<Turn>) = "[번역] $english"
-    override suspend fun suggestReplies(english: String, history: List<Turn>, settings: Settings) =
-        Analysis(
-            intent = "데모",
-            replies = listOf(
-                glasstranslate.model.Reply("Sure, sounds good.", "네, 좋아요."),
-                glasstranslate.model.Reply("Sorry, I can't. Maybe later?", "죄송해요, 어려워요. 나중에요?"),
-                glasstranslate.model.Reply("Could you say that again?", "다시 말씀해 주시겠어요?"),
-            ).take(settings.maxReplies),
-        )
-    override suspend fun koreanToEnglish(korean: String, history: List<Turn>, settings: Settings) = "[EN] $korean"
-}

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rokid 통역 모의 시험</title>
+<style>
+  :root { --bg:#0e1116; --panel:#171b22; --line:#2a313c; --text:#e6e9ee; --muted:#8b95a5; --hud:#5dff8a; --accent:#4c8dff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,"Noto Sans KR",sans-serif; }
+  header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:baseline; }
+  header h1 { font-size:17px; margin:0; } header span { color:var(--muted); font-size:13px; }
+  main { display:grid; grid-template-columns: minmax(340px, 1.1fr) minmax(320px, 1fr); gap:20px; padding:20px; max-width:1100px; margin:0 auto; }
+  @media (max-width:820px){ main{grid-template-columns:1fr; padding:16px;} }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  h2 { font-size:13px; letter-spacing:.04em; color:var(--muted); margin:0 0 10px; font-weight:600; text-transform:uppercase; }
+  .glass { background:#000; border-radius:18px; border:8px solid #2b3039; aspect-ratio:16/9; padding:18px 22px;
+           display:flex; flex-direction:column; justify-content:center; box-shadow: inset 0 0 40px #0a2a14; }
+  .hud { font:600 20px/1.45 "D2Coding","Noto Sans KR",monospace; color:var(--hud); text-shadow:0 0 8px #2cff6a88; white-space:pre-wrap; }
+  .hud .idle { color:#2f8a4a; }
+  .hud .sep { color:#2f8a4a; }
+  .heard { margin-top:12px; font-size:14px; color:var(--muted); min-height:22px; }
+  .heard b { color:var(--text); font-weight:500; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  button { background:#232a35; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 12px; font:inherit; cursor:pointer; }
+  button:hover { border-color:var(--accent); } button:disabled { opacity:.5; cursor:default; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.rec { background:#c0392b; border-color:#c0392b; }
+  input[type=text] { flex:1; min-width:180px; background:#0f131a; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; }
+  .pad button { min-width:52px; font-weight:600; }
+  .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; text-align:center; }
+  .metrics div { background:#0f131a; border:1px solid var(--line); border-radius:8px; padding:8px 4px; }
+  .metrics b { display:block; font-size:20px; font-variant-numeric:tabular-nums; } .metrics span { font-size:12px; color:var(--muted); }
+  .ok { color:#5dff8a; } .warn { color:#ffcc4c; } .bad { color:#ff6b6b; }
+  #log { max-height:200px; overflow:auto; font:12.5px/1.6 ui-monospace,monospace; color:var(--muted); }
+  #log div b { color:var(--text); font-weight:500; }
+  small { color:var(--muted); }
+</style>
+</head>
+<body>
+<header><h1>Rokid 통역 모의 시험</h1><span id="conn">연결 중…</span></header>
+<main>
+  <div>
+    <section>
+      <h2>글래스 HUD (시뮬레이션)</h2>
+      <div class="glass"><div class="hud" id="hud"><span class="idle">대기 중… 상대 말을 기다리는 중</span></div></div>
+      <div class="heard" id="heard"></div>
+    </section>
+    <section style="margin-top:20px">
+      <h2>응답 시간 (상대 발화 → 화면 표시)</h2>
+      <div class="metrics">
+        <div><b id="mSub">–</b><span>한국어 자막</span></div>
+        <div><b id="mRep">–</b><span>답변 후보</span></div>
+        <div><b id="mAvg">–</b><span>자막 평균 (<span id="mN">0</span>회)</span></div>
+      </div>
+      <small>목표: 자막 1.5초 이내. 실제 STT 시간은 빠져 있고 번역·답변 생성 시간만 측정합니다.</small>
+    </section>
+  </div>
+
+  <div>
+    <section>
+      <h2>① 상대방 말하기</h2>
+      <div class="row">
+        <button id="mic" class="primary">🎙 마이크로 영어 말하기</button>
+        <small id="micNote" style="align-self:center"></small>
+      </div>
+      <div class="row">
+        <input type="text" id="say" placeholder="상대 발화를 영어로 입력 후 Enter">
+        <button id="sayBtn">보내기</button>
+      </div>
+      <div class="row" id="scenarios"></div>
+    </section>
+
+    <section style="margin-top:20px">
+      <h2>② 내 답변 (터치패드)</h2>
+      <div class="row pad">
+        <button data-n="1">1</button><button data-n="2">2</button><button data-n="3">3</button>
+        <small style="align-self:center">키보드 1·2·3도 됩니다</small>
+      </div>
+      <div class="row">
+        <input type="text" id="ko" placeholder="한국어로 말한 내용 → 영어로 변환 (Enter)">
+        <button id="koBtn">변환</button>
+      </div>
+    </section>
+
+    <section style="margin-top:20px">
+      <h2>로그</h2><div id="log"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const SCENARIOS = {
+  "☕ 카페": ["Hi there! What can I get for you today?", "Would you like that for here or to go?", "That'll be four fifty. Cash or card?"],
+  "📅 약속 잡기": ["Are you free to meet tomorrow afternoon?", "How about three o'clock?", "Great, I'll send you a calendar invite."],
+  "🚇 길 묻기": ["Excuse me, do you know how to get to the subway station?", "Is it far from here?"],
+};
+let subTimes = [], playing = false;
+
+const log = (html) => { const d = document.createElement("div"); d.innerHTML = html; $("log").prepend(d); };
+const esc = s => s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const post = (path, params = {}) => fetch(path + "?" + new URLSearchParams(params), { method: "POST" }).then(r => r.json());
+const color = (ms, good, ok) => ms <= good ? "ok" : ms <= ok ? "warn" : "bad";
+
+// ---- 서버 이벤트 (HUD 출력) ----
+const es = new EventSource("/events");
+es.onopen = () => { $("conn").textContent = "● 연결됨"; };
+es.onerror = () => { $("conn").textContent = "연결 끊김 – 서버 확인"; };
+es.addEventListener("hud", e => {
+  const d = JSON.parse(e.data);
+  $("hud").innerHTML = d.lines.map(l => l.startsWith("──") ? `<span class="sep">${esc(l)}</span>` : esc(l)).join("\n");
+  const kind = d.kind === "replies" ? "답변 후보" : "화면";
+  if (d.kind === "subtitle") { subTimes.push(d.ms); $("mSub").textContent = (d.ms/1000).toFixed(2) + "s"; $("mSub").className = color(d.ms, 1500, 3000);
+    $("mAvg").textContent = (subTimes.reduce((a,b)=>a+b,0)/subTimes.length/1000).toFixed(2) + "s"; $("mN").textContent = subTimes.length; }
+  if (d.kind === "replies") { $("mRep").textContent = (d.ms/1000).toFixed(2) + "s"; $("mRep").className = color(d.ms, 2500, 5000); }
+  log(`<b>HUD ${kind}</b> +${d.ms}ms · ${esc(d.lines.join(" / "))}`);
+});
+es.addEventListener("heard", e => { const t = JSON.parse(e.data).text; $("heard").innerHTML = `상대: <b>${esc(t)}</b>`; log(`상대 발화 · <b>${esc(t)}</b>`); });
+es.addEventListener("partial", e => { $("heard").innerHTML = `인식 중: <i>${esc(JSON.parse(e.data).text)}</i>`; });
+
+// ---- 입력 ----
+const say = text => text.trim() && post("/say", { text });
+$("say").addEventListener("keydown", e => { if (e.key === "Enter") { say($("say").value); $("say").value = ""; } });
+$("sayBtn").onclick = () => { say($("say").value); $("say").value = ""; };
+document.querySelectorAll("[data-n]").forEach(b => b.onclick = () => post("/select", { n: b.dataset.n }));
+addEventListener("keydown", e => { if (/^[1-3]$/.test(e.key) && !/INPUT/.test(document.activeElement.tagName)) post("/select", { n: e.key }); });
+const sendKo = async () => { const t = $("ko").value.trim(); if (!t) return; $("ko").value = "";
+  const r = await post("/ko", { text: t }); log(`내 발화 · ${esc(t)} → <b>${esc(r.en)}</b>`); };
+$("ko").addEventListener("keydown", e => { if (e.key === "Enter") sendKo(); });
+$("koBtn").onclick = sendKo;
+
+// ---- 시나리오 자동 재생 ----
+for (const [name, lines] of Object.entries(SCENARIOS)) {
+  const b = document.createElement("button"); b.textContent = name + " 자동 재생";
+  b.onclick = async () => {
+    if (playing) return; playing = true; log(`<b>시나리오 시작</b> · ${name}`);
+    for (const l of lines) { await say(l); await new Promise(r => setTimeout(r, 4500)); }
+    playing = false; log(`<b>시나리오 끝</b>`);
+  };
+  $("scenarios").appendChild(b);
+}
+
+// ---- 마이크 (브라우저 음성 인식, Chrome 권장) ----
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) { $("mic").disabled = true; $("micNote").textContent = "이 브라우저는 음성 인식을 지원하지 않아요. Chrome을 쓰거나 아래 입력/시나리오를 이용하세요."; }
+else {
+  const rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; rec.continuous = true; let on = false;
+  rec.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++) {
+      const r = e.results[i]; const t = r[0].transcript;
+      if (r.isFinal) say(t); else post("/partial", { text: t }); } };
+  rec.onend = () => { if (on) rec.start(); };
+  rec.onerror = e => { $("micNote").textContent = "마이크 오류: " + e.error; };
+  $("mic").onclick = () => { on = !on; if (on) rec.start(); else rec.stop();
+    $("mic").textContent = on ? "■ 듣는 중… (누르면 중지)" : "🎙 마이크로 영어 말하기"; $("mic").classList.toggle("rec", on); };
+}
+</script>
+</body>
+</html>
