@@ -251,7 +251,7 @@ const M = {
   dark:  new THREE.MeshStandardMaterial({color:0x3b3833,roughness:.6}),
   mirror:new THREE.MeshStandardMaterial({color:0xdde5e9,roughness:.08,metalness:.15}),
   glass: new THREE.MeshStandardMaterial({color:0xd7e8ee,roughness:.05,metalness:.1,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false}),
-  frame: new THREE.MeshStandardMaterial({color:0xf6f4ef,roughness:.4}),
+  frame: new THREE.MeshStandardMaterial({color:0xe9e9e7,roughness:.4}),   // 창호 프레임 N9
   duvet: new THREE.MeshStandardMaterial({color:0x8a7d6e,roughness:.95}),
   linen: new THREE.MeshStandardMaterial({color:0xf7f4ee,roughness:.9}),
   sofa:  new THREE.MeshStandardMaterial({color:0xb9ad9b,roughness:.95}),
@@ -265,15 +265,15 @@ const M = {
 
 
 /* ---------- exterior & site materials ---------- */
-function brickTex(base,vary,mortar){
+function brickTex(base,vary,mortar){   // 슬림벽돌 290x57x20T, 줄눈 10 -> 300 x 67 module, T=1.2 m
   return canvasTex(1024,1024,(g,w,h)=>{
     g.fillStyle=mortar; g.fillRect(0,0,w,h);
-    const rows=15, bh=h/rows, bw=w/5;           // T=1.2 m -> brick ~240 x 80 mm module (치장벽돌)
+    const rows=18, bh=h/rows, cols=4, bw=w/cols, j=4.2;
     for(let r=0;r<rows;r++){ const off=(r%2)*bw/2;
-      for(let c=-1;c<6;c++){ const l=1-vary/2+rnd()*vary;
-        const [R,G,B]=base; g.fillStyle=`rgb(${R*l|0},${G*l|0},${B*l|0})`;
-        g.fillRect(c*bw+off+4,r*bh+4,bw-8,bh-8);
-        g.fillStyle='rgba(0,0,0,.035)'; for(let k=0;k<30;k++) g.fillRect(c*bw+off+4+rnd()*(bw-10),r*bh+4+rnd()*(bh-10),2,2);
+      for(let c=-1;c<=cols;c++){ const l=1-vary/2+rnd()*vary;
+        const [R,G,B]=base; g.fillStyle=`rgb(${Math.min(255,R*l)|0},${Math.min(255,G*l)|0},${Math.min(255,B*l)|0})`;
+        g.fillRect(c*bw+off+j,r*bh+j,bw-2*j,bh-2*j);
+        for(let k=0;k<40;k++){ g.fillStyle=rnd()>.5?'rgba(0,0,0,.04)':'rgba(255,255,255,.06)'; g.fillRect(c*bw+off+j+rnd()*(bw-12),r*bh+j+rnd()*(bh-12),2,2); }
       } }
   });
 }
@@ -283,10 +283,15 @@ function noiseTex(base,specks,size){
 }
 const withT=(mat,T)=>{ mat.userData.T=T; return mat; };
 Object.assign(M,{
-  brick:  withT(new THREE.MeshStandardMaterial({map:brickTex([233,226,213],0.08,'#f1ece3'),roughness:.9}),1.2),   // 지정벽돌 S1002-Y50R
-  brick2: withT(new THREE.MeshStandardMaterial({map:brickTex([222,207,190],0.1,'#ece4d8'),roughness:.9}),1.2),    // 지정벽돌 S1005-Y20R
-  stucco: new THREE.MeshStandardMaterial({color:0xece7de,roughness:.95}),
-  alu:    new THREE.MeshStandardMaterial({color:0xd8d0c4,roughness:.45,metalness:.35}),
+  brickS: withT(new THREE.MeshStandardMaterial({map:brickTex([237,234,227],0.07,'#d4d0c7'),roughness:.88}),1.2),   // 지정벽돌 치장쌓기 S1002-Y50R (남측 동)
+  brickN: withT(new THREE.MeshStandardMaterial({map:brickTex([232,222,205],0.08,'#cfc5b4'),roughness:.88}),1.2),   // 지정벽돌 치장쌓기 S1005-Y20R (북측 동·코어·옥탑)
+  stucco: withT(new THREE.MeshStandardMaterial({map:noiseTex('#ece9e3',['rgba(0,0,0,.05)','rgba(255,255,255,.25)'],256),roughness:.97}),1.0),  // 스타코 S1002-Y50R
+  alu:    withT(new THREE.MeshStandardMaterial({map:canvasTex(512,512,(g,w,h)=>{ g.fillStyle='#e5ddcf'; g.fillRect(0,0,w,h); g.fillStyle='rgba(120,105,85,.35)';
+            g.fillRect(0,0,w,3); g.fillRect(0,0,3,h); g.fillRect(w/2,0,2,h); }),roughness:.4,metalness:.3}),1.2),            // 알루미늄 패널 S1005-Y20R
+  exConc: withT(new THREE.MeshStandardMaterial({map:canvasTex(512,512,(g,w,h)=>{ g.fillStyle='#bcb9b3'; g.fillRect(0,0,w,h);
+            for(let i=0;i<9000;i++){ g.fillStyle=rnd()>.5?'rgba(0,0,0,.05)':'rgba(255,255,255,.07)'; g.fillRect(rnd()*w,rnd()*h,3,3); }
+            g.fillStyle='rgba(80,75,70,.35)'; g.fillRect(0,0,w,2); g.fillRect(0,h/2,w,2); g.fillRect(0,0,2,h);
+            g.fillStyle='rgba(70,65,60,.5)'; [[.25,.25],[.75,.25],[.25,.75],[.75,.75]].forEach(([a,b])=>{ g.beginPath(); g.arc(a*w,b*h,5,0,7); g.fill(); }); }),roughness:.95}),1.8), // 노출콘크리트
   conc:   new THREE.MeshStandardMaterial({color:0xc4bfb7,roughness:.95}),
   slabSoffit: new THREE.MeshStandardMaterial({color:0xd6d2cb,roughness:.95}),
   extGlass: new THREE.MeshStandardMaterial({color:0x9db4c2,roughness:.05,metalness:.35,transparent:true,opacity:.42,side:THREE.DoubleSide,depthWrite:false}),
@@ -422,6 +427,12 @@ function build(f,o,fn){
   const F=FLOORS[f], g=new THREE.Group(), cg=new THREE.Group(), cols=[], wr=[];
   world=g; ceilings=cg; colliders=cols; wallRects=wr; H=o.H||2.63; WALLMAT=o.wallMat||M.wall; GLASSMAT=o.glass||M.glass; ELECON=!!o.elec;
   fn();
+  if(o.tint!==undefined&&o.tint>=0){ // vary soft furnishings per household so units read as different homes
+    const P1=[0x8a7d6e,0x6f7f8e,0x9c8a72,0x7d8f78,0xa07d6e,0x6e6a85,0x8e9a8a,0xa59478,0x707a70,0x8b6f62,0x7a8794,0x96866f,0x6f8582,0x9a7e86];
+    const P2=[0xb9ad9b,0x9aa3a8,0xc2b49c,0xa9b39f,0xb8a39a,0xa29fb0,0xbfb7a6,0x9fa58f,0xb3a594,0xa9b0b6,0xc4ad94,0x9fb0ab,0xb09fa0,0xaab09a];
+    const d=new THREE.MeshStandardMaterial({color:P1[o.tint%P1.length],roughness:.95}), sf=new THREE.MeshStandardMaterial({color:P2[o.tint%P2.length],roughness:.95});
+    g.traverse(m=>{ if(m.material===M.duvet) m.material=d; else if(m.material===M.sofa) m.material=sf; });
+  }
   const ox=o.ox||0, oy=o.oy||0;
   for(const G of [g,cg]){ G.position.set(ox,F.z+(o.dz||0),-oy); if(o.mirror) G.scale.x=-1; }
   (o.shell?F.shell:F.interior).add(g); (o.shell?F.shell:F.ceil).add(cg);
@@ -706,9 +717,9 @@ plate('outlet',3.04,4.88,1.8,'W',1,'벽부형 팬 전원 콘센트 · 안방 욕
 function northUnit(){
   // perimeter (interior side)
   wall(0,0.2,12.2,19.7,[W(12.5,13.5,0.9,2.1),W(15.3,17.0,1.0,2.1)]);
-  wall(0,9.46,19.5,19.7,[W(1.55,2.75,0.9,2.1),W(4.7,5.9,0.9,2.1),W(6.95,8.75,0.9,2.1)]);
+  wall(0,9.46,19.5,19.7,NWIN.slice(0,3).map(([a,b])=>W(a,b,1.05,2.25)));
   wall(0,3.72,12.2,12.4,[W(0.9,2.75,0.9,2.1)]);
-  wall(3.6,3.72,10.9,19.5,[{a:13.68,b:14.55,t:'open'},DR(16.65,17.4,'a',1)]);
+  wall(3.6,3.72,10.9,19.5,[W(11.1,11.85,0.9,2.1),{a:13.68,b:14.55,t:'open'},DR(16.65,17.4,'a',1)]);
   wall(3.6,6.95,10.9,11.1,[W(4.2,5.9,0.9,2.1)]);
   // partitions
   wall(3.72,6.95,13.56,13.68,[DR(5.95,6.7,'b',-1)]);
@@ -763,9 +774,9 @@ const NORTH_ROOMS=[
 function communal(){
   wall(0,0.2,12.2,19.7,[W(12.5,13.5,0.9,2.3),W(15.3,17.0,0.9,2.3)]);
   wall(18.6,18.8,12.2,19.7,[W(12.5,13.5,0.9,2.3),W(15.3,17.0,0.9,2.3)]);
-  wall(0,18.8,19.5,19.7,[W(1.55,2.75,0.9,2.3),W(4.7,5.9,0.9,2.3),W(6.95,8.75,0.9,2.3),W(10.05,11.85,0.9,2.3),W(12.9,14.1,0.9,2.3),W(16.05,17.25,0.9,2.3)]);
+  wall(0,18.8,19.5,19.7,NWIN.map(([a,b])=>W(a,b,1.1,2.3)));
   wall(0,3.72,12.2,12.4,[W(0.9,2.75,0.9,2.3)]); wall(15.08,18.8,12.2,12.4,[W(16.05,17.9,0.9,2.3)]);
-  wall(3.6,3.72,10.9,19.5,[DR(14.4,15.9,'a',1)]); wall(15.08,15.2,10.9,19.5,[DR(14.0,14.8,'b',-1),DR(17.1,17.9,'a',-1)]);
+  wall(3.6,3.72,10.9,19.5,[W(11.1,11.85,0.9,2.3),DR(14.4,15.9,'a',1)]); wall(15.08,15.2,10.9,19.5,[W(11.1,11.85,0.9,2.3),DR(14.0,14.8,'b',-1),DR(17.1,17.9,'a',-1)]);
   wall(15.2,18.6,16.3,16.42);
   wall(3.6,6.95,10.9,11.1,[W(4.2,5.9,0.9,2.3)]); wall(11.85,15.2,10.9,11.1,[W(12.9,14.6,0.9,2.3)]);
   solid(6.83,10.9,7.96,13.0,H); solid(10.84,10.9,11.97,13.0,H);
@@ -784,9 +795,9 @@ function communal(){
 const STAIR={x1:8.22,x2:9.36,y1:8.3,y2:11.7};
 function coreUpper(f){
   wall(8.1,8.22,8.7,12.9);
-  solid(10.58,8.7,12.44,12.9,H);                     // EV · PS · EPS
+  elevatorCab(8.7);                                  // EV (카 탑승 가능) · PS · EPS
   solid(6.36,8.7,8.1,10.9,H);                        // PS
-  box(10.565,9.35,0,10.58,10.35,2.1,M.steel); box(10.56,10.45,1.1,10.58,10.52,1.25,M.black);
+  box(10.56,10.45,1.1,10.58,10.52,1.25,M.black);
   floorRects([[8.22,7.6,10.58,8.3],[9.36,8.3,10.58,11.7],[8.22,11.7,10.58,12.9]],0.004,M.entry,1.2);
   ceilRects([[8.1,7.6,10.58,12.9]],2.4,M.ceil);
   [[9.4,7.95],[9.95,10],[9.4,12.3]].forEach(([x,y])=>downl(x,y,2.4));
@@ -804,6 +815,98 @@ function stairs(f){ // flight from floor f to f+1 inside the stair footprint, ri
   }
 }
 
+/* ---------- 북동측 세대: 302호(3층)·402호(4층)는 401호와 평면이 달라 도면대로 따로 그린다 ---------- */
+function northEastShell(){ // perimeter, PS, 현관, 작은방 — shared by 302 and 402 (global coords)
+  wall(9.34,18.8,19.5,19.7,NWIN.slice(3).map(([a,b])=>W(a,b,1.05,2.25)));
+  wall(18.6,18.8,12.2,19.7,[W(12.5,13.5,0.9,2.1),W(15.3,17.0,1.0,2.1)]);
+  wall(15.08,18.8,12.2,12.4,[W(16.05,17.9,0.9,2.1)]);
+  wall(11.85,15.2,10.9,11.1,[W(12.9,14.6,0.9,2.1)]);
+  solid(10.84,10.9,11.97,13.68,H);
+  wall(9.34,10.96,12.9,13.02,[DR(9.8,10.65,'b',1,{dark:true})]);
+  floor(9.46,13.02,10.84,13.68,0.004,M.entry,1.2);
+  [[10.2,13.4],[12.6,14.1],[13.5,12.3]].forEach(([x,y])=>downl(x,y,2.3));
+  bed(11.97,11.4,13.07,13.4,'S'); table(13.3,11.1,14.9,11.7,M.oak); chair(14.1,11.95);
+}
+function unit402(){
+  northEastShell();
+  wall(15.08,15.2,10.9,19.5,[W(11.1,11.85,0.9,2.1),{a:13.68,b:14.55,t:'open'}]);
+  wall(11.85,15.08,13.56,13.68,[DR(14.25,15.0,'b',-1)]);
+  // 안방 욕실 (west) + 드레스 통로 + 공용 욕실 (east)
+  wall(9.46,12.01,16.36,16.48); wall(11.89,12.01,14.67,16.48,[DR(14.8,15.55,'a',1)]);
+  wall(9.46,15.08,14.55,14.67,[DR(12.03,12.73,'a',1),DR(13.75,14.45,'a',1)]);
+  wall(12.75,12.87,14.67,16.48); wall(12.75,15.08,16.36,16.48);
+  floorRects([[9.46,12.4,18.6,19.5],[11.97,11.1,15.08,12.4]],0,M.wood,1.6);
+  floor(9.46,14.67,11.89,16.36,0.004,M.bathF,1.2); floor(12.87,14.67,15.08,16.36,0.004,M.bathF,1.2);
+  liner(9.46,14.67,11.89,16.36,2.25,M.bathW,[['E',14.8,15.55,2.1]]); liner(12.87,14.67,15.08,16.36,2.25,M.bathW,[['S',13.75,14.45,2.1]]);
+  ceilRects([[9.46,12.4,18.6,19.5],[11.97,11.1,15.08,12.4]],2.3,M.ceil);
+  ceiling(9.46,14.67,11.89,16.36,2.25,M.smc); ceiling(12.87,14.67,15.08,16.36,2.25,M.smc);
+  [[11,18],[13.6,18],[16.9,18.2],[16.9,15.2],[16.9,13.2],[10.6,15.5],[14,15.5]].forEach(([x,y])=>downl(x,y,2.3));
+  // 안방 (넓은 안방: 침대 + 드레스룸 장 + 소파)
+  bed(10.6,17.4,12.2,19.5,'N'); box(9.46,16.6,0,10.06,19.4,2.2,M.film,true); sofa(13.6,17.0,14.9,17.9,'E'); table(13.0,18.9,14.8,19.5,M.oak);
+  // 주방·거실
+  box(15.2,18.9,0,18.6,19.5,0.87,M.film,true); box(15.2,18.88,0.87,18.6,19.5,0.9,M.marble); box(18.0,17.3,0,18.6,18.9,0.87,M.film,true); box(17.98,17.3,0.87,18.6,18.9,0.9,M.marble);
+  box(16.0,19.0,0.9,16.6,19.45,0.905,M.black); box(17.3,19.05,0.88,17.95,19.4,0.905,M.steel); box(15.2,19.15,1.5,18.6,19.5,2.3,M.film);
+  box(15.2,18.2,0,15.85,18.85,2.1,M.beige,true);
+  table(16.2,15.8,17.5,16.6,M.marble); chair(16.5,15.55); chair(17.2,15.55); chair(16.5,16.85); chair(17.2,16.85);
+  sofa(17.75,12.6,18.6,14.6,'E'); box(15.2,12.6,0,15.32,14.0,0.45,M.film,true); box(15.2,12.8,0.95,15.24,13.8,1.6,M.black);
+  // baths
+  toilet(9.9,15.0,'N'); basin(10.5,14.67,11.0,15.1); box(9.46,15.6,0,11.0,16.36,0.03,M.bathF); box(9.46,15.55,0,11.0,15.57,2.0,M.glass);
+  toilet(14.6,16.0,'S'); basin(13.0,15.9,13.5,16.36); box(14.1,14.67,0.0,15.08,15.4,0.55,M.china,true);
+}
+function unit302(){
+  northEastShell();
+  wall(15.08,15.2,10.9,19.5,[W(11.1,11.85,0.9,2.1),DR(13.7,14.5,'b',1),DR(16.55,17.3,'a',1)]);
+  wall(11.85,15.08,13.56,13.68,[DR(12.1,12.9,'a',-1)]);
+  wall(15.2,18.6,16.16,16.28); solid(15.2,15.6,15.7,16.16,H);
+  // 안방 + 안방 욕실 (서측), 안방 문은 주방 쪽
+  wall(12.18,12.3,14.55,19.5,[DR(16.55,17.3,'a',-1)]);
+  wall(9.46,12.18,16.36,16.48,[DR(11.0,11.7,'a',-1)]);
+  wall(9.46,12.18,14.55,14.67);
+  floorRects([[9.46,12.4,18.6,19.5],[11.97,11.1,15.08,12.4]],0,M.wood,1.6);
+  floor(9.46,14.67,12.18,16.36,0.004,M.bathF,1.2);
+  liner(9.46,14.67,12.18,16.36,2.25,M.bathW,[['N',11.0,11.7,2.1]]);
+  ceilRects([[9.46,12.4,18.6,19.5],[11.97,11.1,15.08,12.4]],2.3,M.ceil); ceiling(9.46,14.67,12.18,16.36,2.25,M.smc);
+  [[10.8,18],[13.7,18],[13.7,15.5],[16.9,18],[16.9,14.2],[10.8,15.5]].forEach(([x,y])=>downl(x,y,2.3));
+  bed(9.46,17.2,11.56,18.8,'W'); box(10.2,18.9,0,12.18,19.5,2.2,M.film,true);
+  // 주방·거실
+  box(12.3,18.9,0,15.08,19.5,0.87,M.film,true); box(12.3,18.88,0.87,15.08,19.5,0.9,M.marble);
+  box(12.9,19.0,0.9,13.5,19.45,0.905,M.black); box(14.0,19.05,0.88,14.65,19.4,0.905,M.steel); box(12.3,19.15,1.5,15.08,19.5,2.3,M.film);
+  box(14.45,18.2,0,15.08,18.85,2.1,M.beige,true);
+  table(13.0,16.6,14.3,17.4,M.marble); chair(13.3,16.35); chair(14.0,16.35); chair(13.3,17.65); chair(14.0,17.65);
+  sofa(12.3,14.75,14.3,15.55,'S');
+  // 방 2개 (동측)
+  bed(17.5,17.4,18.6,19.4,'E'); table(15.3,18.9,16.6,19.5,M.oak);
+  bed(17.5,12.5,18.6,14.5,'E'); table(15.3,15.5,16.6,16.1,M.oak); box(15.2,12.4,0,15.8,13.5,2.2,M.film,true);
+  // bath
+  toilet(9.9,15.0,'N'); basin(10.5,14.67,11.0,15.1); box(11.2,14.67,0,12.18,15.9,0.55,M.china,true);
+}
+const NE402_ROOMS=[['현관',[9.46,13.02,10.84,13.68],[9.8,14.1,-1.57]],['복도',[10.84,13.68,15.08,14.55],[10.4,14.1,-1.57]],
+  ['거실·주방',[15.2,12.4,18.6,19.5],[15.9,14.1,-0.6]],['안방',[9.46,16.48,15.08,19.5],[12.4,16.9,0.3]],
+  ['안방 욕실',[9.46,14.67,11.89,16.36],[11.6,14.95,0.9],1],['욕실',[12.87,14.67,15.08,16.36],[14.1,14.95,0],1],
+  ['드레스 통로',[12.01,14.67,12.75,16.42],[12.38,15.0,0]],['작은방',[11.97,11.1,15.08,13.56],[14.6,13.2,2.4]]];
+const NE302_ROOMS=[['현관',[9.46,13.02,10.84,13.68],[9.8,14.1,-1.57]],['복도',[10.84,13.68,12.3,14.55],[10.4,14.1,-1.57]],
+  ['주방·거실',[12.3,13.68,15.08,19.5],[12.7,14.2,-0.4]],['안방',[9.46,16.48,12.18,19.5],[11.8,17.0,1.0]],
+  ['안방 욕실',[9.46,14.67,12.18,16.36],[11.35,16.1,PI]],['방',[15.2,16.28,18.6,19.5],[15.6,17.0,-0.9],0],
+  ['방 2',[15.2,12.4,18.6,16.16],[15.6,14.1,-1.2]],['작은방',[11.97,11.1,15.08,13.56],[12.5,13.2,2.6]]];
+
+/* ---------- 공통: 외벽 부재 ---------- */
+const NWIN=[[1.26,2.53],[4.26,5.53],[7.28,8.55],[10.27,11.54],[13.27,14.53],[16.24,17.5]];   // 배면도 창 위치
+function facePanel(axis,face,out,a,b,z1,z2,mat,t){ // thin panel proud of a wall face. axis 'x': face is the plane y=face; 'y': plane x=face
+  t=t||0.02; if(z2-z1<0.01) return;
+  if(axis==='x') box(a,out<0?face-t:face,z1,b,out<0?face:face+t,z2,mat); else box(out<0?face-t:face,a,z1,out<0?face:face+t,b,z2,mat);
+}
+const EVMAT=new THREE.MeshStandardMaterial({color:0xcfd2d4,roughness:.32,metalness:.25,side:THREE.DoubleSide});
+function elevatorCab(y0){ // EV 승강로: 층마다 문이 열린 카를 둔다 (탑승 후 층 버튼으로 이동)
+  solid(10.58,10.9,12.44,y0===8.6?13.44:12.9,H);
+  wall(10.58,10.7,y0,10.9,[{a:9.4,b:10.3,t:'open',hi:2.1}]);
+  wall(12.3,12.44,y0,10.9); wall(10.7,12.3,y0,8.9); wall(10.7,12.3,10.8,10.9);
+  floor(10.7,8.9,12.3,10.8,0.01,M.dark,1);
+  liner(10.7,8.9,12.3,10.8,2.3,EVMAT,[['W',9.4,10.3,2.1]]);
+  const c=new THREE.Mesh(new THREE.PlaneGeometry(1.4,1.7),M.glowW); c.rotation.x=PI/2; c.position.set(11.5,2.29,-9.85); world.add(c);
+  box(12.22,9.1,0.85,12.27,10.6,0.9,M.steel); box(10.71,10.35,1.0,10.73,10.55,1.4,M.black);
+  box(10.6,8.95,0,10.68,9.4,2.1,EVMAT); box(10.6,10.3,0,10.68,10.75,2.1,EVMAT);
+}
+
 /* ---------- 1층: 휴게음식점1·2, 방풍실, 홀, 계단실, 필로티 주차 (지상1층 평면도) ---------- */
 function glazing(x1,x2,y1,y2,doors,top){ // aluminium storefront: glass with mullions, transom band, door gaps walkable
   const alongX=(x2-x1)>=(y2-y1), L0=alongX?x1:y1, L1=alongX?x2:y2, p1=alongX?y1:x1, p2=alongX?y2:x2, mid=(p1+p2)/2;
@@ -819,51 +922,67 @@ function glazing(x1,x2,y1,y2,doors,top){ // aluminium storefront: glass with mul
     const g=new THREE.Mesh(new THREE.PlaneGeometry(b-a,top-0.08),M.shopGlass);
     if(alongX) g.position.set((a+b)/2,(top+0.08)/2,-mid); else { g.position.set(mid,(top+0.08)/2,-(a+b)/2); g.rotation.y=PI/2; }
     world.add(g); colliders.push(alongX?[a,b,p1,p2]:[p1,p2,a,b]); wallRects.push(alongX?[a,b,p1,p2]:[p1,p2,a,b]); });
-  ds.forEach(([a,b])=>{ // open glass door leaf
-    const w=b-a; if(alongX) box(a,p2,0.02,a+0.03,p2+w*0.9,2.33,M.shopGlass); else box(p2,a,0.02,p2+w*0.9,a+0.03,2.33,M.shopGlass); });
+  ds.forEach(([a,b])=>{ const w=b-a; if(alongX) box(a,p2,0.02,a+0.03,p2+w*0.9,2.33,M.shopGlass); else box(p2,a,0.02,p2+w*0.9,a+0.03,2.33,M.shopGlass); });
 }
 function groundFloor(){
-  H=3.59; WALLMAT=M.brick;
-  // 휴게음식점2 (south shop) + 창고 + 방풍실
+  H=3.59;
+  // 휴게음식점2 (south shop) · 창고 · 방풍실 — 알루미늄 패널(S1005-Y20R) 전면
   glazing(6.57,15.94,1.03,1.09,[[13.4,14.4]]);
   glazing(15.88,15.94,1.09,6.45,[]);
   glazing(2.95,4.64,1.03,1.09,[[3.3,4.3]]);
   glazing(2.95,3.01,1.09,6.33,[[3.0,4.2]]);
-  WALLMAT=M.alu; solid(4.64,1.09,6.57,5.1,3.59); WALLMAT=M.brick;
-  wall(4.64,4.76,5.1,6.33,[]);
+  WALLMAT=M.alu; wall(4.64,6.57,1.03,1.15);
+  WALLMAT=M.wall; wall(4.64,4.76,1.15,6.33); wall(6.45,6.57,1.15,5.22); wall(4.76,6.45,5.1,5.22,[DR(5.6,6.35,'b',1)]);
+  shelf(4.76,1.3,5.2,4.9,2.1); shelf(6.0,1.3,6.45,3.6,2.1);
+  floor(4.76,1.15,6.45,5.1,0.004,M.conc,1.2);
+  WALLMAT=M.brickN;
+  [[6.15,0.85,6.6,1.3],[9.15,0.85,9.66,1.3],[12.2,0.85,12.72,1.3],[6.15,6.0,6.6,6.45],[12.2,6.0,12.72,6.45]].forEach(r=>solid(r[0],r[1],r[2],r[3],3.59));
+  // 1층 홀 · 화장실 (외부 노출콘크리트)
+  WALLMAT=M.exConc;
   wall(2.95,10.58,6.33,6.45,[DR(3.3,4.3,'a',-1),DR(9.7,10.5,'b',-1)]);
-  [[6.15,0.85,6.6,1.3],[9.15,0.85,9.66,1.3],[12.2,0.85,12.72,1.3],[6.15,6.0,6.6,6.45],[12.2,6.0,12.72,6.45]].forEach(r=>solid(r[0],r[1],r[2],r[3],3.59,M.conc));
-  // 1층 홀, 화장실
   wall(2.95,3.07,6.45,8.72,[{a:7.1,b:8.1,t:'open',hi:2.4}]);
   wall(2.95,6.36,8.6,8.72);
   solid(6.36,8.6,8.1,13.44,3.59);
+  wall(12.32,12.44,6.45,8.6);
+  WALLMAT=M.wall;
   wall(8.1,8.22,8.6,12.9);
-  solid(10.58,8.6,12.44,13.44,3.59);
-  box(10.565,9.35,0,10.58,10.35,2.1,M.steel);
+  elevatorCab(8.6);
   wall(10.58,10.7,6.45,8.6,[DR(7.0,7.8,'a',1)]);
-  wall(10.58,12.44,8.48,8.6); wall(12.32,12.44,6.45,8.6); wall(10.58,12.44,6.33,6.45);
+  wall(10.7,12.32,8.48,8.6);
   toilet(11.6,8.2,'S'); basin(12.0,6.45,12.32,7.0);
   floorRects([[2.95,6.45,10.58,8.6],[8.22,8.6,10.58,12.9],[2.95,1.09,4.64,6.45]],0.004,M.entry,1.2);
-  floorRects([[4.64,5.1,15.94,6.33],[6.57,1.09,15.94,5.1]],0.004,M.shopFloor,1.2);
+  floorRects([[6.57,5.22,15.94,6.33],[4.64,5.22,6.57,6.33],[6.57,1.09,15.94,5.22]],0.004,M.shopFloor,1.2);
   floor(10.7,6.45,12.32,8.48,0.004,M.bathF,1.2);
   // 휴게음식점2 furniture
   box(13.2,5.2,0,15.8,5.8,1.05,M.film,true); box(13.2,5.2,1.05,15.8,5.85,1.08,M.marble);
   [[8.0,2.3],[10.0,2.3],[12.0,2.3],[8.0,4.0],[10.0,4.0]].forEach(([x,y])=>{ table(x-0.4,y-0.4,x+0.4,y+0.4,M.marble); chair(x-0.6,y); chair(x+0.6,y); });
-  // ramp from core landing down to 휴게음식점1 (FL -540)
+  // steps from core landing down to 휴게음식점1 (FL -540)
   for(let i=0;i<4;i++){ const y=12.9+i*0.165; box(8.6,y,-0.54,10.2,y+0.165,-0.135*(i+1),M.entry); }
-  // 데크 (FL ±0) and storage blocks between decks and core
+  // 데크 (FL ±0)
   floorRects([[0,10.9,3.6,12.6],[15.2,10.9,18.8,12.6]],0.0,M.deck,1.6);
-  WALLMAT=M.brick; solid(3.6,10.9,6.36,13.44,3.59); solid(12.44,10.9,15.2,13.44,3.59);
 }
-function cafeNorth(){ // 휴게음식점1, FL -540 (built with dz=-0.54)
-  H=4.13; WALLMAT=M.brick; GLASSMAT=M.extGlass;
-  const xs=[[0.6,2.9],[3.9,6.4],[6.95,8.75],[10.05,11.85],[12.4,14.9],[15.9,18.2]];
-  wall(0,18.8,19.5,19.7,xs.map(([a,b])=>W(a,b,0.7,3.1)));
-  wall(0,0.2,13.56,19.5,[W(14.3,15.6,0.9,3.1),W(16.4,18.6,0.9,3.1)]);
-  wall(18.6,18.8,13.56,19.5,[W(14.3,15.6,0.9,3.1),W(16.4,18.6,0.9,3.1)]);
-  wall(0,6.36,13.44,13.56,[W(0.8,3.2,0.9,3.1)]); wall(12.44,18.8,13.44,13.56,[W(15.6,18.0,0.9,3.1)]);
+function cafeNorth(){ // 휴게음식점1 · 창고 · 데크 계단, FL -540 (built with dz=-0.54)
+  H=4.13; WALLMAT=M.brickN; GLASSMAT=M.extGlass;
+  wall(0,18.8,19.5,19.7,NWIN.map(([a,b])=>W(a,b,1.0,3.0)));
+  NWIN.forEach(([a,b])=>{ facePanel('x',19.7,1,a-0.06,b+0.06,0,1.0,M.alu); facePanel('x',19.7,1,a-0.06,b+0.06,3.0,4.13,M.alu); });
+  wall(0,0.2,13.56,19.5,[W(14.3,15.6,0.9,3.0),W(16.4,18.6,0.9,3.0)]);
+  wall(18.6,18.8,13.56,19.5,[W(14.3,15.6,0.9,3.0),W(16.4,18.6,0.9,3.0)]);
+  wall(0,3.72,13.44,13.56,[W(0.8,3.2,0.9,3.0)]); wall(15.08,18.8,13.44,13.56,[W(15.6,18.0,0.9,3.0)]);
+  wall(3.6,6.36,13.44,13.56,[DR(3.74,4.62,'a',1),DR(5.55,6.25,'b',-1)]);
+  wall(12.44,15.2,13.44,13.56,[DR(12.55,13.25,'a',-1),DR(14.18,15.06,'b',1)]);
   wall(6.36,12.44,13.44,13.56,[{a:8.6,b:10.2,t:'open',hi:2.9}]);
   floor(0.2,13.56,18.6,19.5,0.004,M.shopFloor,1.2);
+  // 데크에서 내려오는 계단 + 창고 105 (서측·동측)
+  for(const [sx1,sx2,cx1,cx2] of [[3.72,4.64,4.76,6.36],[14.16,15.08,12.44,14.04]]){
+    wall(sx1-0.12,sx1,11.5,13.44); wall(sx2,sx2+0.12,10.9,13.44);
+    box(sx1-0.12,10.9,0.54,sx1,11.5,0.62,M.iron);
+    wall(Math.min(sx1,cx1)-0.12,Math.max(sx2,cx2),10.78,10.9);
+    floor(sx1,10.9,sx2,11.5,0.54,M.deck,1.6);
+    for(let i=0;i<3;i++){ const y=11.5+i*0.57; box(sx1,y,0,sx2,y+0.57,0.54-0.18*(i+1),M.entry); }
+    floor(sx1,13.2,sx2,13.44,0.004,M.entry,1.2);
+    floor(cx1,10.9,cx2,13.44,0.004,M.conc,1.2);
+    shelf(cx1+0.1,11.0,cx2-0.1,11.5,2.0);
+  }
   // counter + tables + pendants
   box(12.6,14.0,0,16.4,14.6,1.05,M.oak,true); box(12.55,13.95,1.05,16.45,14.65,1.09,M.marble);
   box(13.0,13.6,0,16.0,13.95,2.0,M.film);
@@ -872,60 +991,70 @@ function cafeNorth(){ // 휴게음식점1, FL -540 (built with dz=-0.54)
     cyl(x,y,2.7,4.1,0.006,0.006,M.dark,4); cyl(x,y,2.55,2.7,0.03,0.17,M.film); });
 }
 
-/* ---------- 외피(2~4층): 지정벽돌 치장쌓기, THK22 로이복층 이중창, 평철난간 (정면도·측면도) ---------- */
+/* ---------- 외피(2~4층) — 정면도·측면도·배면도 마감 ----------
+   남측 동: 지정벽돌 S1002-Y50R + 창 하부 스타코(S1002-Y50R) · 북측 동: 지정벽돌 S1005-Y20R + 창호 세로 알루미늄 패널(S1005-Y20R)
+   코어 측면: 스타코(S1002-Y50R) · 창호: THK22 투명 로이복층유리 이중창, 프레임 N9 · 평철난간 */
 const SOUTH_WIN=[[0.7,2.4,0.9,2.1],[3.75,5.65,0.12,2.15],[7.3,8.7,0.9,2.1]];   // 403호 기준 (x는 그리드3 기준)
 function mirrorWins(list){ const out=[]; list.forEach(([a,b,lo,hi])=>{ out.push([9.4+a,9.4+b,lo,hi]); out.push([9.4-b,9.4-a,lo,hi]); }); return out; }
+const sh=(list)=>list.map(([a,b,lo,hi])=>W(a,b,lo+0.25,hi+0.25));
+function sillPanels(axis,face,out,list){ list.forEach(([a,b,lo])=>{ if(lo>0.5) facePanel(axis,face,out,a,b,Math.max(0.55,lo+0.25-0.78),lo+0.25,M.stucco); }); }
 function shellUpper(f,part){
   // built with dz=-0.25 so the skin also covers the slab edge; window heights are shifted by +0.25
-  H=LV[f+1]-LV[f]+(f===1&&part==='N'?0.78:0); WALLMAT=M.brick; GLASSMAT=M.extGlass;
-  if(part==='N') return shellNorth(f);
-  const w=(list)=>list.map(([a,b,lo,hi])=>W(a,b,lo+0.25,hi+0.25));
+  H=LV[f+1]-LV[f]+(f===1&&part==='N'?0.78:0); GLASSMAT=M.extGlass;
+  if(part==='N'){ WALLMAT=M.brickN; return shellNorth(f); }
+  WALLMAT=M.brickS;
   const south=mirrorWins(SOUTH_WIN).sort((p,q)=>p[0]-q[0]);
-  wall(-0.1,18.9,-0.3,-0.2,w(south));
-  const eastS=[[1.0,2.4,0.9,2.1],[5.0,6.6,0.9,2.1]], eastN=f===1?[[12.5,13.5,0.9,2.3],[15.3,17.0,0.9,2.3]]:[[12.5,13.5,0.9,2.1],[15.3,17.0,1.0,2.1]];
-  wall(18.8,18.9,-0.3,7.6,w(eastS)); wall(-0.1,0,-0.3,7.6,w(eastS));
-  void eastN;
-  // light-well faces
+  wall(-0.1,18.9,-0.3,-0.2,sh(south)); sillPanels('x',-0.3,-1,south);
+  const eastS=[[1.0,2.4,0.9,2.1],[5.0,6.6,0.9,2.1]];
+  wall(18.8,18.9,-0.3,7.6,sh(eastS)); wall(-0.1,0,-0.3,7.6,sh(eastS));
+  sillPanels('y',18.9,1,eastS); sillPanels('y',-0.1,-1,eastS);
+  // light-well faces of the south block
   wall(-0.1,2.9,7.5,7.6); wall(15.9,18.9,7.5,7.6);
-  wall(2.8,6.36,8.1,8.2,w([[3.4,4.45,1.1,2.05]])); wall(12.44,16.0,8.1,8.2,w([[14.35,15.4,1.1,2.05]]));
+  const kw=[[3.4,4.45,1.1,2.05]], kw2=[[14.35,15.4,1.1,2.05]];
+  wall(2.8,6.36,8.1,8.2,sh(kw)); wall(12.44,16.0,8.1,8.2,sh(kw2)); sillPanels('x',8.2,1,kw); sillPanels('x',8.2,1,kw2);
   wall(2.8,2.9,7.5,8.2); wall(15.9,16.0,7.5,8.2);
-  wall(6.26,6.36,8.1,10.9); wall(12.44,12.54,8.1,10.9);
+  // core side faces — stucco, west face has the tall stair-hall glazing
+  WALLMAT=M.stucco;
+  wall(6.26,6.36,8.1,10.9,[W(9.0,10.6,0.3,H-0.05)]); wall(12.44,12.54,8.1,10.9);
   // 프렌치창 평철난간
   [[3.75,5.65],[13.15,15.05]].forEach(([a,b])=>{ const p=plane(b-a,0.95,M.rail,a,0,0.8); p.position.set((a+b)/2,0.25+0.12+0.48,0.36); world.add(p);
     box(a,-0.4,1.33,b,-0.34,1.37,M.iron); });
-  // slab (floor of this level) — leaves the stair hole open
-  slab(0,SLAB_S);
+  slab(0,SLAB_S,f===1?M.exConc:M.slabSoffit);
 }
 function shellNorth(f){
-  const hi=f===1?2.3:2.1;
-  const w=(list)=>list.map(([a,b,lo,h])=>W(a,b,lo+0.25,h+0.25));
-  const eastN=[[12.5,13.5,0.9,hi],[15.3,17.0,f===1?0.9:1.0,hi]];
-  wall(18.8,18.9,12.1,19.8,w(eastN)); wall(-0.1,0,12.1,19.8,w(eastN));
-  const north=[[1.55,2.75],[4.7,5.9],[6.95,8.75]].flatMap(([a,b])=>[[a,b],[18.8-b,18.8-a]]).sort((p,q)=>p[0]-q[0]).map(([a,b])=>[a,b,0.9,hi]);
-  wall(-0.1,18.9,19.7,19.8,w(north));
-  wall(3.5,6.36,10.8,10.9,w([[4.2,5.9,0.9,hi]])); wall(12.44,15.3,10.8,10.9,w([[12.9,14.6,0.9,hi]]));
-  wall(3.5,3.6,10.8,12.2); wall(15.2,15.3,10.8,12.2);
-  wall(-0.1,3.6,12.1,12.2,w([[0.9,2.75,0.9,hi]])); wall(15.2,18.9,12.1,12.2,w([[16.05,17.9,0.9,hi]]));
+  // f===1: 2층 북측은 주민공동실(FL -780) — this skin is built from that floor, so heights are relative to it
+  const c=f===1, lo=c?1.1:1.05, hi=c?2.3:2.25, h2=c?2.3:2.1;
+  const strips=(axis,face,out,list)=>list.forEach(([a,b,l,h])=>{ facePanel(axis,face,out,a-0.06,b+0.06,0,l+0.25,M.alu); facePanel(axis,face,out,a-0.06,b+0.06,h+0.25,H,M.alu); });
+  const eastN=[[12.5,13.5,0.9,h2],[15.3,17.0,c?0.9:1.0,h2]];
+  wall(18.8,18.9,12.1,19.8,sh(eastN)); wall(-0.1,0,12.1,19.8,sh(eastN));
+  strips('y',18.9,1,eastN); strips('y',-0.1,-1,eastN);
+  const north=NWIN.map(([a,b])=>[a,b,lo,hi]);
+  wall(-0.1,18.9,19.7,19.8,sh(north)); strips('x',19.8,1,north);
+  const side=[[11.1,11.85,0.9,h2]], sw=[[4.2,5.9,0.9,h2]], se=[[12.9,14.6,0.9,h2]], lw=[[0.9,2.75,0.9,h2]], le=[[16.05,17.9,0.9,h2]];
+  wall(3.5,6.36,10.8,10.9,sh(sw)); wall(12.44,15.3,10.8,10.9,sh(se)); strips('x',10.8,-1,sw); strips('x',10.8,-1,se);
+  wall(3.5,3.6,10.8,12.2,sh(side)); wall(15.2,15.3,10.8,12.2,sh(side)); strips('y',3.5,-1,side); strips('y',15.3,1,side);
+  wall(-0.1,3.6,12.1,12.2,sh(lw)); wall(15.2,18.9,12.1,12.2,sh(le)); strips('x',12.1,-1,lw); strips('x',12.1,-1,le);
   slab(0,SLAB_N);
 }
 const SLAB_S=[[0,-0.2,18.8,7.5],[2.9,7.5,15.9,8.1],[6.36,8.1,8.22,12.9],[9.36,8.1,12.44,12.9],[8.22,8.1,9.36,8.3],[8.22,11.7,9.36,12.9]];
 const SLAB_N=[[0,12.2,18.8,19.7],[3.6,10.9,6.36,12.2],[12.44,10.9,15.2,12.2],[6.36,12.9,12.44,13.56]];
-function slab(zTop,list){ list.forEach(([x1,y1,x2,y2])=>{ box(x1,y1,zTop,x2,y2,zTop+0.25,M.slabSoffit); }); }
+function slab(zTop,list,mat){ list.forEach(([x1,y1,x2,y2])=>{ box(x1,y1,zTop,x2,y2,zTop+0.25,mat||M.slabSoffit); }); }
 
 /* ---------- 옥상: 옥상정원·휴게데크(남측), 태양광·실외기(북측), 옥탑 계단실 (옥탑층 평면도) ---------- */
 const OUTLINE=[[0,-0.2],[18.8,-0.2],[18.8,7.5],[15.9,7.5],[15.9,8.1],[12.44,8.1],[12.44,10.9],[15.2,10.9],[15.2,12.2],[18.8,12.2],[18.8,19.7],
   [0,19.7],[0,12.2],[3.6,12.2],[3.6,10.9],[6.36,10.9],[6.36,8.1],[2.9,8.1],[2.9,7.5],[0,7.5]];
 function roof(){
-  H=3.2; WALLMAT=M.brick;
+  H=3.2; WALLMAT=M.brickN;
+  const pm=(ax,ay,bx,by)=>((ax===6.36||ax===12.44)&&ax===bx&&Math.min(ay,by)<10.95&&Math.max(ay,by)<=10.95)?M.stucco:(Math.max(ay,by)<=8.15?M.brickS:M.brickN);
   slab(-0.25,SLAB_S); slab(-0.25,SLAB_N);
   // parapet + flat-bar railing along the outline (outward = left of travel for this clockwise-in-plan order)
   for(let i=0;i<OUTLINE.length;i++){ const [ax,ay]=OUTLINE[i], [bx,by]=OUTLINE[(i+1)%OUTLINE.length];
     const t=0.12;
     if(ay===by){ const x1=Math.min(ax,bx)-t, x2=Math.max(ax,bx)+t, out=(bx>ax)?-1:1, y1=out<0?ay-t:ay, y2=out<0?ay:ay+t;
-      box(x1,y1,-0.25,x2,y2,0.35,M.brick,true); wallRects.push([x1,x2,y1,y2]);
+      box(x1,y1,-0.25,x2,y2,0.35,pm(ax,ay,bx,by),true); wallRects.push([x1,x2,y1,y2]);
       const p=plane(x2-x1,0.85,M.rail,x1,0,0.8); p.position.set((x1+x2)/2,0.78,-(y1+y2)/2); world.add(p); box(x1,y1,1.18,x2,y2,1.22,M.iron); }
     else { const y1=Math.min(ay,by)-t, y2=Math.max(ay,by)+t, out=(by>ay)?1:-1, x1=out<0?ax-t:ax, x2=out<0?ax:ax+t;
-      box(x1,y1,-0.25,x2,y2,0.35,M.brick,true); wallRects.push([x1,x2,y1,y2]);
+      box(x1,y1,-0.25,x2,y2,0.35,pm(ax,ay,bx,by),true); wallRects.push([x1,x2,y1,y2]);
       const p=plane(y2-y1,0.85,M.rail,y1,0,0.8); p.rotation.y=PI/2; p.position.set((x1+x2)/2,0.78,-(y1+y2)/2); world.add(p); box(x1,y1,1.18,x2,y2,1.22,M.iron); }
   }
   // finishes
@@ -945,7 +1074,7 @@ function roof(){
   for(const [x0,x1] of [[1.0,4.6],[14.2,17.8]]) for(let x=x0;x<x1;x+=0.95){ box(x,13.0,0,x+0.8,13.32,0.7,M.film,true);
     const f=new THREE.Mesh(new THREE.CircleGeometry(0.22,20),M.dark); f.position.set(x+0.4,0.38,-12.99); f.rotation.y=PI; world.add(f); }
   // 옥탑 (penthouse): stair hall + EV 기계실, 지정벽돌(S1005-Y20R) + 스타코 마감
-  WALLMAT=M.brick2;
+  WALLMAT=M.brickN;
   wall(7.58,7.7,4.0,14.82,[DR(5.0,5.9,'a',1,{dark:true})]);
   wall(7.58,10.72,3.88,4.0); wall(7.58,10.72,14.7,14.82,[DR(9.0,9.9,'b',-1,{dark:true})]);
   wall(10.6,10.72,3.88,7.6); wall(10.6,10.72,13.0,14.82);
@@ -1011,24 +1140,26 @@ for(let f=1;f<=3;f++){
   build(f,{shell:true,dz:-0.25},()=>shellUpper(f,'S'));
   build(f,{shell:true,dz:f===1?-1.03:-0.25},()=>shellUpper(f,'N'));
   const se=['','201호','303호','403호'][f], sw=['','202호','304호','404호'][f];
-  build(f,{ox:9.4,elec:f===3},unit403); build(f,{ox:9.4,mirror:true},unit403);
+  build(f,{ox:9.4,elec:f===3,tint:f===3?-1:f*4},unit403); build(f,{ox:9.4,mirror:true,tint:f*4+1},unit403);
   addRooms(f,se,ROOMS403,{ox:9.4}); addRooms(f,sw,ROOMS403,{ox:9.4,mirror:true});
   build(f,{},()=>coreUpper(f));
-  addRooms(f,'공용',[['계단·엘리베이터 홀',[8.22,7.6,10.58,12.9],[9.9,9.3,PI]]]);
+  addRooms(f,'공용',[['계단·엘리베이터 홀',[8.22,7.6,10.58,12.9],[9.9,9.3,PI]],['엘리베이터',[10.7,8.9,12.3,10.8],[11.6,9.85,PI/2]]]);
   if(f===1){
     build(1,{dz:-0.78,H:3.41},communal);
     addRooms(1,'공용',[['주민공동실',[3.72,13.02,15.08,19.5],[9.4,13.4,0]],['주민공동실',[3.72,11.1,6.83,13.68]],['주민공동실',[11.97,11.1,15.08,13.68]],
       ['대형 공용창고',[0.2,12.4,3.6,19.5],[2.8,15.2,PI/2]],['소형 공용창고 1',[15.2,16.42,18.6,19.5],[15.8,17.5,-PI/2]],['소형 공용창고 2',[15.2,12.4,18.6,16.3],[15.8,14.4,-PI/2]]]);
   } else {
-    build(f,{},northUnit); build(f,{ox:18.8,mirror:true},northUnit);
-    addRooms(f,f===2?'301호':'401호',NORTH_ROOMS); addRooms(f,f===2?'302호':'402호',NORTH_ROOMS,{ox:18.8,mirror:true});
+    build(f,{tint:f*4+2},northUnit); build(f,{tint:f*4+3},f===2?unit302:unit402);
+    addRooms(f,f===2?'301호':'401호',NORTH_ROOMS); addRooms(f,f===2?'302호':'402호',f===2?NE302_ROOMS:NE402_ROOMS);
   }
 }
 build(4,{shell:true},roof);
 addRooms(0,'1층',[
   ['휴게음식점1 (카페)',[0.2,13.56,18.6,19.5],[9.4,14.4,0]], ['휴게음식점2',[6.57,1.09,15.94,6.33],[13.9,1.6,0.5]],
   ['방풍실',[2.95,1.09,4.64,6.33],[3.8,1.6,0]], ['1층 홀',[2.95,6.45,10.58,8.6],[3.5,7.6,-PI/2]], ['화장실',[10.7,6.45,12.32,8.48],[11.0,7.6,-PI/2],1],
-  ['계단·엘리베이터 홀',[8.22,8.6,10.58,12.9],[9.9,9.0,0]],
+  ['계단·엘리베이터 홀',[8.22,8.6,10.58,12.9],[9.9,9.0,0]], ['엘리베이터',[10.7,8.9,12.3,10.8],[11.6,9.85,PI/2]],
+  ['창고 (휴게음식점2)',[4.76,1.15,6.45,5.1],[5.95,4.6,PI]], ['서측 창고',[4.76,10.9,6.36,13.44],[5.9,13.1,PI]], ['동측 창고',[12.44,10.9,14.04,13.44],[12.9,13.1,PI]],
+  ['데크 계단',[3.72,10.9,4.64,13.44],[4.2,11.1,0]], ['데크 계단',[14.16,10.9,15.08,13.44],[14.6,11.1,0]],
   ['서측 주차장',[-2.6,-0.6,2.95,9.6],[1.0,-2.2,0.25]], ['동측 주차장',[15.94,-0.6,21.4,9.6],[17.6,-2.2,-0.25]],
   ['데크',[0,10.9,3.6,12.6],[1.8,11.3,0]], ['데크',[15.2,10.9,18.8,12.6],[17,11.3,0]],
   ['대지 앞 도로',[-30,-8.8,50,-0.76],[9.4,-7.0,0]], ['대지',[-2.6,-0.76,21.4,21.3]],
@@ -1047,7 +1178,7 @@ sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.04; scene.add(sun);
 const lamp=new THREE.PointLight(0xffe6c4,0.6,7,1.5); scene.add(lamp);
 
 /* ---------- movement ---------- */
-const EYE=1.58, RAD=0.2;
+const EYE=1.58, RAD=0.17;
 let mode='walk', cut=-1;
 const P={x:9.4,y:-7.0,f:0,yaw:0,pitch:-0.02,stair:null};
 const inR=(r,x,y)=>x>=r[0]&&x<=r[2]&&y>=r[1]&&y<=r[3];
@@ -1055,6 +1186,8 @@ function zAt(f,x,y){
   if(f===0){
     if(inR([8.6,12.9,10.2,13.56],x,y)) return -0.54*(y-12.9)/0.66;
     if(inR([0.2,13.56,18.6,19.5],x,y)) return -0.54;
+    for(const [a,b] of [[3.72,4.64],[14.16,15.08]]) if(x>=a&&x<=b&&y>=10.9&&y<=13.56) return y<11.5?0:y>13.2?-0.54:-0.54*(y-11.5)/1.7;
+    if(inR([4.76,10.9,6.36,13.44],x,y)||inR([12.44,10.9,14.04,13.44],x,y)) return -0.54;
     if(inR([2.95,1.03,15.94,8.6],x,y)||inR([6.36,8.6,12.44,13.44],x,y)||inR([0,10.9,3.6,12.6],x,y)||inR([15.2,10.9,18.8,12.6],x,y)) return 0;
     return GL;
   }
@@ -1270,7 +1403,7 @@ function frame(now){
   }
   applyVisibility();
   if(mode==='walk'){ const R=roomAt(P.stair!==null?P.stair:P.f,P.x,P.y);
-    const w = P.stair!==null ? `계단 (${FNAME[P.stair]} ↔ ${FNAME[P.stair+1]})` : R ? (/호$/.test(R.unit)?`${FNAME[P.f]} ${R.unit} · ${R.name}`:`${FNAME[P.f]} · ${R.name}`) : `${FNAME[P.f]}`;
+    const w = R&&R.name==='엘리베이터' ? `${FNAME[P.f]} · 엘리베이터 (층 버튼으로 이동)` : P.stair!==null ? `계단 (${FNAME[P.stair]} ↔ ${FNAME[P.stair+1]})` : R ? (/호$/.test(R.unit)?`${FNAME[P.f]} ${R.unit} · ${R.name}`:`${FNAME[P.f]} · ${R.name}`) : `${FNAME[P.f]}`;
     if(w!==lastWhere){ lastWhere=w; $('#where').textContent=w; } }
   if(++mapTick%3===0) drawMap();
   renderer.render(scene,camera);
