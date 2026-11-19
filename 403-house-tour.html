@@ -1884,7 +1884,7 @@ function pickHome(Hh){ HOME=Hh; stopAuto(); P.f=Hh.f; P.stair=null; P.x=Hh.path[
 let PICK=null;   // 고른 장소 — 경로는 '가는 길 보기'를 눌러야 그린다
 function pickDest(D){ ROUTE=null; stopAuto(); drawRoute();
   if(PICK===D){ PICK=null; $('#route').hidden=true; refreshUI(); return; }
-  PICK=D; const p=D.pts[D.pts.length-1]; focusAt(D.f,p[0],p[1],D.f===4?24:18);
+  PICK=D; const p=D.pts[D.pts.length-1]; const portrait=innerWidth<innerHeight; focusAt(D.f,portrait?9.4:(9.4+p[0])/2-(NARROW.matches?0:3),portrait?p[1]+5:(9.7+p[1])/2,portrait?68:34); orbit.theta=0; orbit.phi=0.3;   // 위에서 내려다보는 평면 뷰
   $('#routeText').innerHTML=`<b>${D.name}</b> · ${D.fl}`; $('#rShow').textContent='가는 길 보기'; $('#route').hidden=false; refreshUI();
   if(NARROW.matches) setFold(true); }
 function setRoute(D){
