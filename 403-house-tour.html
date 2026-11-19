@@ -213,7 +213,7 @@ body.touring #where,body.touring #joy,body.editing #joy{display:none!important}
 <div id="tip" hidden></div>
 
 <button id="menuFab" hidden aria-label="메뉴 열기">☰ 메뉴</button>
-<div id="inBar" hidden><button id="inExit">◀ 위에서 보기</button><span>끌어서 둘러보기<br>바닥을 누르면 걸어가요</span></div>
+<div id="inBar" hidden><button id="inExit">◀ 위에서 보기</button><span>끌어서 둘러보기 · 바닥 누르면 걷기<br>두 손가락 모으면 뒤로, 벌리면 앞으로</span></div>
 <button class="editbtn" id="editBtn" aria-pressed="false">✎ 가구 편집</button>
 <section class="card" id="card" aria-label="길 찾기와 둘러보기">
   <div class="head">
@@ -1707,6 +1707,8 @@ function panBy(dx,dy){
   const c=Math.cos(orbit.theta), n=Math.sin(orbit.theta);
   orbit.tx-= dx*s*c + dy*sv*n; orbit.ty+= -dx*s*n + dy*sv*c;
   orbit.tx=Math.max(-12,Math.min(31,orbit.tx)); orbit.ty=Math.max(-14,Math.min(32,orbit.ty)); }
+function walkBy(d){ if(TOUR||!d) return; WALKTO=null; stopAuto(); d=Math.max(-0.5,Math.min(0.5,d));
+  const n=Math.ceil(Math.abs(d)/0.05), st=d/n; for(let i=0;i<n;i++) tryStep(P.x-Math.sin(P.yaw)*st,P.y+Math.cos(P.yaw)*st); }
 function twoFinger(){ const [a,b]=[...ptrs.values()]; return {d:Math.hypot(a.x-b.x,a.y-b.y),ang:Math.atan2(b.y-a.y,b.x-a.x),mx:(a.x+b.x)/2,my:(a.y+b.y)/2}; }
 stage.addEventListener('contextmenu',e=>e.preventDefault());
 stage.addEventListener('pointerdown',e=>{ try{ stage.setPointerCapture(e.pointerId); }catch(_){} if(editPointerDown(e)) return;
@@ -1722,6 +1724,8 @@ stage.addEventListener('pointermove',e=>{
     if(twist0!==null){ let da=t.ang-twist0; if(da>Math.PI) da-=2*Math.PI; if(da<-Math.PI) da+=2*Math.PI; orbit.theta+=da; }
     if(mid0){ const mdx=t.mx-mid0[0], mdy=t.my-mid0[1]; orbit.phi=Math.max(0.12,Math.min(1.5,orbit.phi-mdy*0.004)); panBy(mdx,0); }
     pinch0=t.d; twist0=t.ang; mid0=[t.mx,t.my]; return; }
+  if(ptrs.size===2&&mode==='walk'){ // 안에서: 두 손가락 모으면 뒤로, 벌리면 앞으로
+    const t=twoFinger(); if(pinch0){ walkBy((t.d-pinch0)*0.008); } pinch0=t.d; return; }
   if(ptrs.size>2) return;
   const k=isTouch?0.006:0.0042;
   if(mode==='walk'){ P.yaw+=dx*k; P.pitch=Math.max(-1.3,Math.min(1.3,P.pitch+dy*k)); if(AUTO) AUTO.look=1.2; }
@@ -1731,7 +1735,7 @@ stage.addEventListener('pointermove',e=>{
 const pup=e=>{ const q=ptrs.get(e.pointerId); editPointerUp(e); ptrs.delete(e.pointerId); if(ptrs.size<2){ pinch0=0; twist0=null; mid0=null; }
   if(q&&!q.multi&&e.type==='pointerup'&&Math.hypot(e.clientX-q.sx,e.clientY-q.sy)<10&&performance.now()-q.t<400) onTap(e.clientX,e.clientY); };
 stage.addEventListener('pointerup',pup); stage.addEventListener('pointercancel',pup);
-stage.addEventListener('wheel',e=>{ e.preventDefault(); if(mode==='top') orbit.r=Math.min(90,Math.max(6,orbit.r*(1+e.deltaY*0.001))); },{passive:false});
+stage.addEventListener('wheel',e=>{ e.preventDefault(); if(mode==='walk'&&!TOUR){ walkBy(-e.deltaY*0.004); return; } if(mode==='top') orbit.r=Math.min(90,Math.max(6,orbit.r*(1+e.deltaY*0.001))); },{passive:false});
 const joy=$('#joy'), knob=joy.querySelector('i'); const J={x:0,y:0,id:null};
 joy.addEventListener('pointerdown',e=>{ J.id=e.pointerId; joy.setPointerCapture(e.pointerId); joyMove(e); if(AUTO) stopAuto(); });
 joy.addEventListener('pointermove',e=>{ if(e.pointerId===J.id) joyMove(e); });
