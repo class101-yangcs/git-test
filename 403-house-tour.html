@@ -54,11 +54,17 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .hint{font-size:12px;color:var(--muted);line-height:1.5}
 .hint kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 4px}
 .toggle{border:0;background:none;color:var(--muted);font:400 12px var(--sans);cursor:pointer;padding:0}
-.card.min .homes,.card.min #dests,.card.min .hint,.card.min details,.card.min .lbl,.card.min .floors{display:none}
+.card.min #dests,.card.min .hint,.card.min details,.card.min .lbl,.card.min .floors{display:none}
 .homes{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
 .homes button{border:1px solid var(--line);background:transparent;color:var(--fg);font:500 12.5px var(--sans);padding:6px 2px;border-radius:7px;cursor:pointer;font-variant-numeric:tabular-nums}
 .homes button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 .homes button.wide{grid-column:span 2}
+#dests .dg{display:grid;grid-template-columns:34px 1fr;gap:6px;align-items:start;margin-top:6px}
+#dests .dg>span{font-size:11px;color:var(--muted);padding-top:7px}
+#dests .dg>div{display:flex;flex-wrap:wrap;gap:5px}
+#dests button{border:1px solid var(--line);background:transparent;color:var(--fg);font:400 12px var(--sans);padding:5px 8px;border-radius:999px;cursor:pointer}
+#dests button:hover{background:var(--chip)}
+#dests button.unit{border-style:dashed}
 #dests button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 #dests button small{font-size:10.5px;opacity:.75;margin-left:3px}
 .route{background:var(--chip);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
@@ -203,28 +209,21 @@ body.touring #where,body.touring #joy,body.editing #joy{display:none!important}
     <button class="mini" id="miniBtn" aria-label="메뉴를 작은 버튼으로 줄이기" title="메뉴 최소화">–</button>
   </div>
   <button class="tourbtn" id="tourBtn" aria-pressed="false">▶ 자동 투어</button>
-  <div class="lbl">우리 집</div>
-  <div class="homes" id="homes" role="group" aria-label="출발할 집"></div>
   <div class="lbl">어디로 갈까요?</div>
-  <div class="rooms" id="dests" role="group" aria-label="목적지"></div>
+  <div id="dests" role="group" aria-label="목적지"></div>
   <div class="route" id="route" hidden>
     <p id="routeText"></p>
-    <div class="rbtns"><button id="rJump" class="primary">바로 가기</button><button id="rClear">경로 지우기</button></div>
+    <div class="rbtns"><button id="rClear">경로 지우기</button></div>
   </div>
-  <div class="seg" role="group" aria-label="보기 방식">
-    <button id="mWalk" aria-pressed="true">걸어보기</button>
-    <button id="mTop" aria-pressed="false">위에서 보기</button>
-  </div>
+  <div class="lbl">층별로 보기</div>
   <div class="floors" id="floors" role="group" aria-label="층 선택"></div>
-  <details id="more"><summary id="placesLbl">이 층 공간 바로 가기</summary><div class="rooms" id="rooms"></div></details>
-  <div class="hint" id="hint"></div>
-  <p class="store" id="storeState">저장 방식을 확인하는 중…</p>
   <button class="toggle" id="fold" aria-expanded="true">메뉴 접기</button>
 </section>
 
 <aside class="edit" id="edit" hidden aria-label="가구 편집">
   <div class="ehead"><b>가구 편집</b><button id="eClose">닫기</button></div>
-  <p class="note" id="eHint">바꾼 배치는 공용 데이터베이스에 남아 이 페이지를 여는 모든 사람에게 보여요. 가구를 누르면 선택돼요. 선택한 가구를 끌면 옮겨져요. 위에서 보기로 바꾸면 배치하기 쉬워요.</p>
+  <p class="store" id="storeState">저장 방식을 확인하는 중…</p>
+  <p class="note" id="eHint">바꾼 배치는 공용 데이터베이스에 남아 이 페이지를 여는 모든 사람에게 보여요. 가구를 누르면 선택돼요. 선택한 가구를 끌면 옮겨져요. </p>
   <section id="sel" hidden>
     <div class="selname" id="selName"></div>
     <div class="dims">
@@ -1602,7 +1601,7 @@ const lamp=new THREE.PointLight(0xffe6c4,0.6,7,1.5); scene.add(lamp);
 
 /* ---------- movement ---------- */
 const EYE=1.58, RAD=0.17;
-let mode='walk', cut=-1;
+let mode='top', cut=-1;
 const P={x:9.4,y:-7.0,f:0,yaw:0,pitch:-0.02,stair:null};
 const inR=(r,x,y)=>x>=r[0]&&x<=r[2]&&y>=r[1]&&y<=r[3];
 function zAt(f,x,y){
@@ -1831,9 +1830,9 @@ function nextStop(){ const T=TOUR; if(!T) return;
   if(T.i>=T.stops.length-1){ endTour(true); return; }
   T.i++; T.paused=false; $('#tcPause').textContent='일시정지'; goSegment(); }
 function pauseTour(){ if(!TOUR) return; TOUR.paused=true; $('#tcPause').textContent='계속'; }
-function resumeTour(){ const T=TOUR; if(!T) return; T.paused=false; $('#tcPause').textContent='일시정지';
+function resumeTour(){ const T=TOUR; if(!T) return; T.paused=false; $('#tcPause').textContent='일시정지'; if(T.phase!=='intro'&&mode!=='walk') setMode('walk');
   if(T.phase==='move'&&!AUTO){ placeAtStart(); AUTO={li:0,pi:1,wait:0,look:0,tour:true}; } }
-function endTour(done){ stopAuto(true); TOUR=null; ROUTE=null; drawRoute(); $('#tourBtn').setAttribute('aria-pressed','false'); $('#tourBtn').textContent='▶ 자동 투어'; document.body.classList.remove('touring'); if($('#card').hidden&&NARROW.matches){ setTiny(false); setFold(true); }
+function endTour(done){ stopAuto(true); TOUR=null; ROUTE=null; drawRoute(); focusAt(-1,9.4,9.85,44); $('#tourBtn').setAttribute('aria-pressed','false'); $('#tourBtn').textContent='▶ 자동 투어'; document.body.classList.remove('touring'); if($('#card').hidden&&NARROW.matches){ setTiny(false); setFold(true); }
   if(done){ showCap('투어 끝','둘러봐 주셔서 고마워요','이제 자유롭게 걸어 다니거나, 우리 집을 고르고 가고 싶은 곳을 눌러 길을 찾아보세요.'); setTimeout(()=>{ if(!TOUR) tourCap.hidden=true; },6000); }
   else tourCap.hidden=true; refreshUI(); }
 function tourTick(dt){ const T=TOUR; if(!T||T.paused) return; T.t+=dt;
@@ -1864,21 +1863,27 @@ function applyVisibility(){
 }
 
 /* ---------- UI ---------- */
-const floorsEl=$('#floors'), roomsEl=$('#rooms'), homesEl=$('#homes'), destsEl=$('#dests');
+const floorsEl=$('#floors'), destsEl=$('#dests');
 let HOME=HOMES[HOMES.length-1];
 const FBTN=['전체','1층·외부','2층','3층','4층','옥상'].map((t,i)=>{ const b=document.createElement('button'); b.textContent=t; b.dataset.f=i-1;
   b.addEventListener('click',()=>pickFloor(i-1)); floorsEl.appendChild(b); return b; });
-const HBTN=HOMES.map(Hh=>{ const b=document.createElement('button'); b.textContent=Hh.label||Hh.id+'호'; if(Hh.id==='visitor') b.className='wide';
-  b.addEventListener('click',()=>pickHome(Hh)); homesEl.appendChild(b); return b; });
-const DBTN=DESTS.map(D=>{ const b=document.createElement('button'); b.innerHTML=`${D.name}<small>${D.fl}</small>`;
-  b.addEventListener('click',()=>pickDest(D)); destsEl.appendChild(b); return b; });
-function pickHome(Hh){ HOME=Hh; stopAuto(); setMode('walk'); P.f=Hh.f; P.stair=null; P.x=Hh.path[0][0]; P.y=Hh.path[0][1];
+// 세대도 목적지로: 엘리베이터 홀에서 각 세대 현관 안까지
+HOMES.filter(Hh=>Hh.id!=='visitor').forEach(Hh=>{ const pts=rev(Hh.path), a=pts[pts.length-2], b=pts[pts.length-1];
+  DESTS.push({id:'u'+Hh.id,name:Hh.id+'호',fl:FNAME[Hh.f],f:Hh.f,pts,yaw:Math.atan2(-(b[0]-a[0]),b[1]-a[1]),unit:true}); });
+const DBTN=new Array(DESTS.length);
+[0,1,2,3,4].forEach(f=>{ const idx=DESTS.map((D,i)=>i).filter(i=>DESTS[i].f===f).sort((a,b)=>(DESTS[a].unit?1:0)-(DESTS[b].unit?1:0));
+  if(!idx.length) return; const g=document.createElement('div'); g.className='dg'; g.innerHTML=`<span>${FNAME[f]}</span><div></div>`; destsEl.appendChild(g);
+  idx.forEach(i=>{ const D=DESTS[i], b=document.createElement('button'); b.textContent=D.name; if(D.unit) b.className='unit';
+    b.addEventListener('click',()=>pickDest(D)); g.lastChild.appendChild(b); DBTN[i]=b; }); });
+function focusAt(f,x,y,r){ setMode('top'); cut=f; orbit.tz=f<0?5:LV[Math.min(f,4)]+1; orbit.tx=x; orbit.ty=y; orbit.r=r||18; refreshUI(); }
+function pickHome(Hh){ HOME=Hh; stopAuto(); P.f=Hh.f; P.stair=null; P.x=Hh.path[0][0]; P.y=Hh.path[0][1];
   const [nx,ny]=Hh.path[1]; P.yaw=Math.atan2(-(nx-P.x),ny-P.y); P.pitch=-0.32;
+  if(Hh.id!=='visitor') focusAt(Hh.f,Hh.path[0][0],Hh.path[0][1],18); else focusAt(-1,9.4,9.85,46);
   if(ROUTE) setRoute(ROUTE.dest); refreshUI(); if(NARROW.matches&&ROUTE) setFold(true); }
-function pickDest(D){ setRoute(D); refreshUI(); if(NARROW.matches) setFold(true); }
+function pickDest(D){ if(ROUTE&&ROUTE.dest===D){ $('#rClear').click(); return; } setRoute(D); const p=D.pts[D.pts.length-1]; focusAt(D.f,p[0],p[1],D.f===4?24:18); if(NARROW.matches) setFold(true); }
 function setRoute(D){
   ROUTE=buildRoute(HOME,D); drawRoute(); stopAuto();
-  const from=HOME.id==='visitor'?'대지 앞 도로':`${HOME.id}호 (${FNAME[HOME.f]})`;
+  const from='건물 앞 도로';
   const tf=D.f===4?3:D.f;
   const via = tf!==HOME.f ? ` → 엘리베이터 ${FNAME[HOME.f]}→${FNAME[tf]}` : '';
   const st = D.f===4 ? ' → 계단으로 옥상' : '';
@@ -1886,8 +1891,6 @@ function setRoute(D){
   $('#routeText').innerHTML=`<b>${from}</b>${via}${st} → <b>${D.name}</b><br>걷는 거리 약 ${Math.round(ROUTE.len)} m · 약 ${sec<60?sec+'초':Math.round(sec/60)+'분'}`;
   $('#route').hidden=false;
 }
-$('#rJump').onclick=()=>{ if(!ROUTE) return; stopAuto(); setMode('walk'); const L=ROUTE.legs[ROUTE.legs.length-1], p=L.pts[L.pts.length-1];
-  P.f=L.f; P.stair=null; P.x=p[0]; P.y=p[1]; P.yaw=ROUTE.dest.yaw; P.pitch=-0.06; refreshUI(); };
 $('#rClear').onclick=()=>{ ROUTE=null; stopAuto(); drawRoute(); $('#route').hidden=true; refreshUI(); };
 function viewFloor(){ return mode==='walk'?(P.stair!==null?P.stair:P.f):cut; }
 function spawnFloor(f){
@@ -1898,35 +1901,22 @@ function spawnFloor(f){
 }
 function pickFloor(f){
   stopAuto();
-  if(mode==='walk'){ if(f<0) return; spawnFloor(f); }
-  else { cut=f; orbit.tz = f<0?5:LV[f]+1; }
+  setMode('top'); cut=f; orbit.tz = f<0?5:LV[f]+1; if(f<0){ orbit.tx=9.4; orbit.ty=9.85; orbit.r=Math.max(orbit.r,40); }
   refreshUI();
 }
-function goTo(R){ stopAuto(); setMode('walk'); P.f=R.f; P.stair=null; P.x=R.spawn[0]; P.y=R.spawn[1]; P.yaw=R.spawn[2]; P.pitch=-0.08; refreshUI(); }
+function goTo(R){ stopAuto(); focusAt(R.f,(R.r[0]+R.r[2])/2,(R.r[1]+R.r[3])/2,16); }
 function refreshUI(){
   const vf=viewFloor();
   FBTN.forEach(b=>{ const f=+b.dataset.f; b.hidden = mode==='walk'&&f<0; b.setAttribute('aria-pressed', f===vf); });
-  HBTN.forEach((b,i)=>b.setAttribute('aria-pressed',HOMES[i]===HOME));
   DBTN.forEach((b,i)=>b.setAttribute('aria-pressed',!!ROUTE&&ROUTE.dest===DESTS[i]));
-  roomsEl.innerHTML='';
-  const f=vf<0?null:vf;
-  $('#placesLbl').textContent = f===null?'층을 고르면 공간 목록이 나와요':`${FNAME[f]} 공간 바로 가기`;
-  const chip=(label,R)=>{ const b=document.createElement('button'); b.textContent=label; b.onclick=()=>goTo(R); roomsEl.appendChild(b); };
-  if(f!==null){ const seen=new Set();
-    ROOMS.filter(R=>R.f===f&&R.spawn).forEach(R=>{ const isUnit=/호$/.test(R.unit), k=isUnit?R.unit:R.name; if(seen.has(k)) return; seen.add(k);
-      chip(k, isUnit?(ROOMS.find(Q=>Q.f===f&&Q.unit===R.unit&&Q.name==='현관')||R):R); }); }
   $('#mapFloor').textContent=FNAME[Math.max(0,vf)];
 }
-$('#hint').innerHTML = (isTouch
-  ? '왼쪽 아래 스틱으로 이동하고 화면을 끌어서 둘러보세요.'
-  : '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>·방향키 이동, <kbd>Shift</kbd> 빠르게, 화면을 끌어서 둘러보기.')
-  + ' 우리 집을 고르고 가고 싶은 곳을 누르면 길을 표시해요. 건물 전체는 자동 투어로 둘러볼 수 있어요. 계단은 걸어서, 층 버튼은 엘리베이터처럼 이동해요.';
-function setMode(m){ mode=m; $('#mWalk').setAttribute('aria-pressed',m==='walk'); $('#mTop').setAttribute('aria-pressed',m==='top');
+function setMode(m){ mode=m;
   joy.hidden=!(isTouch&&m==='walk'); $('#where').hidden=m!=='walk'; labelsEl.hidden=m!=='top';
   if(m==='top'&&ROUTE){ const tf=ROUTE.dest.f; cut=tf===4?-1:tf; orbit.tz=cut<0?5:LV[cut]+1; }
   routeMat.depthTest=chevMat.depthTest=m==='walk';
   camera.fov=m==='walk'?72:42; camera.updateProjectionMatrix(); lamp.visible=m==='walk'; refreshUI(); }
-$('#mWalk').onclick=()=>setMode('walk'); $('#mTop').onclick=()=>{ stopAuto(); setMode('top'); };
+
 function setFold(min){ $('#card').classList.toggle('min',min); $('#fold').textContent=min?'메뉴 펼치기':'메뉴 접기'; $('#fold').setAttribute('aria-expanded',!min); }
 $('#fold').onclick=()=>setFold(!$('#card').classList.contains('min'));
 function setTiny(on){ $('#card').hidden=on; $('#menuFab').hidden=!on; }
@@ -1979,9 +1969,7 @@ $('#map').addEventListener('click',e=>{
   const f=Math.max(0,viewFloor()), T=mapXf(f), r=mc.getBoundingClientRect();
   const [x,y]=T.from((e.clientX-r.left)/r.width*mc.width,(e.clientY-r.top)/r.height*mc.height);
   const R=roomAt(f,x,y); if(!R&&f!==0) return;
-  stopAuto(); setMode('walk'); P.f=f; P.stair=null;
-  if(!blocked(f,x,y)&&!(x>S.x1&&x<S.x2&&y>S.y1&&y<S.y2)){ P.x=x; P.y=y; } else if(R&&R.spawn){ P.x=R.spawn[0]; P.y=R.spawn[1]; }
-  refreshUI();
+  stopAuto(); focusAt(f,x,y,16);
 });
 
 
@@ -2302,7 +2290,7 @@ renderResults();
 /* ---------- loop ---------- */
 function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize();
-setMode('walk');
+setMode('top');
 $('#loading').remove();
 let last=performance.now(), lastWhere='', mapTick=0, camZ=footZ()+EYE, lastF=-9;
 const v3=new THREE.Vector3();
