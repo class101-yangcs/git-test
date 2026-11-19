@@ -146,6 +146,11 @@ body.editing .editbtn{display:none}
 #labels{position:fixed;inset:0;pointer-events:none;z-index:3}
 #labels div{position:absolute;transform:translate(-50%,-50%);background:var(--panel);color:var(--fg);border:1px solid var(--line);
   border-radius:6px;padding:2px 7px;font-size:12px;font-weight:500;white-space:nowrap}
+#inBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:9;display:flex;align-items:center;gap:8px;
+  background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 12px 5px 5px;box-shadow:0 2px 10px rgba(0,0,0,.15);max-width:calc(100vw - 24px)}
+#inBar button{border:0;background:var(--accent);color:var(--accent-fg);font:600 13px var(--sans);padding:9px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;min-height:40px}
+#inBar span{font-size:11.5px;color:var(--muted);line-height:1.35;white-space:nowrap}
+body.touring #inBar{display:none!important}
 #labels div.mine{border-color:var(--accent);font-weight:700}
 #labels div.sub{font-size:10.5px;padding:1px 6px;opacity:.85;background:rgba(255,255,255,.75);color:#4a4036;border-color:transparent}
 #joy{position:fixed;left:calc(max(24px,env(safe-area-inset-left,0px) + 8px));bottom:calc(28px + env(safe-area-inset-bottom,0px));
@@ -205,6 +210,7 @@ body.touring #where,body.touring #joy,body.editing #joy{display:none!important}
 <div id="tip" hidden></div>
 
 <button id="menuFab" hidden aria-label="메뉴 열기">☰ 메뉴</button>
+<div id="inBar" hidden><button id="inExit">◀ 위에서 보기</button><span>끌어서 둘러보기<br>바닥을 누르면 걸어가요</span></div>
 <button class="editbtn" id="editBtn" aria-pressed="false">✎ 가구 편집</button>
 <section class="card" id="card" aria-label="길 찾기와 둘러보기">
   <div class="head">
@@ -217,7 +223,7 @@ body.touring #where,body.touring #joy,body.editing #joy{display:none!important}
   <div id="dests" role="group" aria-label="목적지"></div>
   <div class="route" id="route" hidden>
     <p id="routeText"></p>
-    <div class="rbtns"><button id="rShow" class="primary">가는 길 보기</button></div>
+    <div class="rbtns"><button id="rIn" class="primary">안으로 들어가기</button><button id="rShow">가는 길 보기</button></div>
   </div>
   <div class="lbl">층별로 보기</div>
   <div class="floors" id="floors" role="group" aria-label="층 선택"></div>
@@ -1538,7 +1544,7 @@ for(let f=1;f<=3;f++){
   if(f===1){
     build(1,{dz:-0.78,H:3.41},commons3);
     addRooms(1,'공용',[['주민공동실(열람실)',[3.72,13.56,15.08,19.5],[9.4,14.2,0]],['어린이 열람실',[3.72,11.1,7.3,13.44],[6.7,12.9,PI]],['미디어실·소회의실',[11.97,11.1,15.08,13.44],[14.5,13.0,PI]],
-      ['다목적실·GX룸',[0.2,12.36,3.6,18.3],[2.6,16.0,PI/2]],['창고',[0.2,18.42,3.6,19.5]],['1인 스터디룸',[15.2,16.1,18.6,19.5],[16.0,16.7,-0.3]],['게스트룸',[15.2,12.36,18.6,15.98],[16.4,15.1,PI]]]);
+      ['다목적실·GX룸',[0.2,12.36,3.6,18.3],[2.6,16.0,PI/2]],['창고',[0.2,18.42,3.6,19.5]],['1인 스터디룸',[15.2,16.1,18.6,19.5],[16.0,16.7,-0.3]],['게스트룸',[15.2,12.36,18.6,15.98],[16.4,15.1,PI]],['게스트룸 화장실',[17.42,14.5,18.6,15.98]]]);
     addRooms(1,'공용',[['화장실-2',[6.48,8.82,7.98,10.78],[7.6,9.25,PI/2],1]]);
   } else {
     build(f,{tint:f*4+2},northUnit); build(f,{tint:f*4+3},f===2?unit302:unit402);
@@ -1656,6 +1662,38 @@ addEventListener('keyup',e=>{ keys[e.code]=false; });
 addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });
 
 const orbit={theta:-0.5,phi:0.95,r:46,tx:9.4,ty:9.85,tz:5};
+/* ---------- 안으로 들어가 보기: 위에서 두 번 누르기 / [안으로 들어가기] → 사람 눈높이, 바닥을 누르면 그쪽으로 걷기 ---------- */
+let WALKTO=null, lastTap=null;
+const _ray=new THREE.Raycaster(), _ndc=new THREE.Vector2();
+function floorHit(cx,cy,z){ _ndc.set(cx/innerWidth*2-1,-(cy/innerHeight)*2+1); _ray.setFromCamera(_ndc,camera);
+  const o=_ray.ray.origin, d=_ray.ray.direction; if(Math.abs(d.y)<1e-4) return null; const t=(z-o.y)/d.y; if(t<=0) return null;
+  return [o.x+d.x*t, -(o.z+d.z*t), t]; }
+function bestYaw(f,x,y){ let best=0,bl=-1; for(let k=0;k<16;k++){ const a=k*Math.PI/8, dx=-Math.sin(a), dy=Math.cos(a); let L=0;
+    while(L<9&&!blocked(f,x+dx*(L+0.2),y+dy*(L+0.2))) L+=0.2; if(L>bl){ bl=L; best=a; } } return best; }
+function freeNear(f,x,y){ if(!blocked(f,x,y)) return [x,y]; for(let r=0.15;r<=1.2;r+=0.15) for(let k=0;k<12;k++){ const a=k*Math.PI/6, nx=x+Math.cos(a)*r, ny=y+Math.sin(a)*r; if(!blocked(f,nx,ny)) return [nx,ny]; } return null; }
+function enterAt(f,x,y,yaw){ const p=freeNear(f,x,y); if(!p) return false; stopAuto(); WALKTO=null;
+  setMode('walk'); P.f=f; P.stair=null; P.x=p[0]; P.y=p[1]; P.yaw=yaw!==undefined?yaw:bestYaw(f,p[0],p[1]); P.pitch=-0.1;
+  camZ=footZ()+EYE; if(NARROW.matches) setTiny(true); refreshUI(); return true; }
+function exitInside(){ WALKTO=null; focusAt(P.f,P.x,P.y,24); orbit.theta=0; orbit.phi=0.3; }
+function onTap(cx,cy){
+  if(TOUR||EDIT) return;
+  if(mode==='walk'){ const h=floorHit(cx,cy,footZ()); if(!h||h[2]>25) return;
+    // 막히기 직전까지만 걷는다
+    const a=[P.x,P.y], n=Math.ceil(Math.hypot(h[0]-a[0],h[1]-a[1])/0.1); let last=null;
+    for(let i=1;i<=n;i++){ const x=a[0]+(h[0]-a[0])*i/n, y=a[1]+(h[1]-a[1])*i/n; if(blocked(P.f,x,y)) break; last=[x,y]; }
+    if(last) WALKTO=last; return; }
+  const now=performance.now();
+  if(lastTap&&now-lastTap.t<450&&Math.hypot(cx-lastTap.x,cy-lastTap.y)<40){ lastTap=null;
+    const f=cut<0?0:cut; let h=floorHit(cx,cy,LV[f]); if(!h) return; h=floorHit(cx,cy,LV[f]+zAt(f,h[0],h[1]))||h;
+    const R=roomAt(f,h[0],h[1]); if(!R&&f!==0) return;
+    const small=R&&(R.r[2]-R.r[0])*(R.r[3]-R.r[1])<160, fp=freeNear(f,h[0],h[1]), v=small&&fp?roomView(R,fp):null;
+    const sid=R&&Object.keys(STOP_ROOM).find(k=>STOP_ROOM[k][0]===f&&STOP_ROOM[k][1]===R.name), SV=sid&&STOP_VIEW[sid];
+    if(SV) enterAt(f,SV.p[0],SV.p[1],Math.atan2(-(SV.look[0]-SV.p[0]),SV.look[1]-SV.p[1]));
+    else if(v) enterAt(f,v.p[0],v.p[1],v.yaw);
+    else if(small&&fp){ const far=[[R.r[0],R.r[1]],[R.r[2],R.r[1]],[R.r[0],R.r[3]],[R.r[2],R.r[3]]].sort((a,b)=>Math.hypot(b[0]-fp[0],b[1]-fp[1])-Math.hypot(a[0]-fp[0],a[1]-fp[1]))[0];
+      const c=[(far[0]+(R.r[0]+R.r[2])/2)/2,(far[1]+(R.r[1]+R.r[3])/2)/2]; enterAt(f,fp[0],fp[1],Math.atan2(-(c[0]-fp[0]),c[1]-fp[1])); }
+    else enterAt(f,h[0],h[1]); return; }
+  lastTap={t:now,x:cx,y:cy}; }
 const ptrs=new Map(); let pinch0=0, twist0=null, mid0=null;
 /* 위에서 보기 조작: 한 손가락(마우스 왼쪽) 끌기 = 화면 이동, 두 손가락 = 확대·축소 + 비틀어 회전 + 함께 위아래로 밀어 기울이기,
    마우스 오른쪽 끌기(또는 Shift+끌기) = 회전·기울이기 */
@@ -1667,7 +1705,8 @@ function panBy(dx,dy){
 function twoFinger(){ const [a,b]=[...ptrs.values()]; return {d:Math.hypot(a.x-b.x,a.y-b.y),ang:Math.atan2(b.y-a.y,b.x-a.x),mx:(a.x+b.x)/2,my:(a.y+b.y)/2}; }
 stage.addEventListener('contextmenu',e=>e.preventDefault());
 stage.addEventListener('pointerdown',e=>{ try{ stage.setPointerCapture(e.pointerId); }catch(_){} if(editPointerDown(e)) return;
-  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,rot:e.pointerType==='mouse'&&(e.button===2||e.shiftKey||e.ctrlKey)});
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,t:performance.now(),multi:ptrs.size>0,rot:e.pointerType==='mouse'&&(e.button===2||e.shiftKey||e.ctrlKey)});
+  if(ptrs.size>1) ptrs.forEach(q=>q.multi=true);
   if(ptrs.size===2){ const t=twoFinger(); pinch0=t.d; twist0=t.ang; mid0=[t.mx,t.my]; } });
 stage.addEventListener('pointermove',e=>{
   if(editPointerMove(e)) return;
@@ -1684,7 +1723,8 @@ stage.addEventListener('pointermove',e=>{
   else if(p.rot){ orbit.theta-=dx*0.006; orbit.phi=Math.max(0.12,Math.min(1.5,orbit.phi-dy*0.005)); }
   else panBy(dx,dy);
 });
-const pup=e=>{ editPointerUp(e); ptrs.delete(e.pointerId); if(ptrs.size<2){ pinch0=0; twist0=null; mid0=null; } };
+const pup=e=>{ const q=ptrs.get(e.pointerId); editPointerUp(e); ptrs.delete(e.pointerId); if(ptrs.size<2){ pinch0=0; twist0=null; mid0=null; }
+  if(q&&!q.multi&&e.type==='pointerup'&&Math.hypot(e.clientX-q.sx,e.clientY-q.sy)<10&&performance.now()-q.t<400) onTap(e.clientX,e.clientY); };
 stage.addEventListener('pointerup',pup); stage.addEventListener('pointercancel',pup);
 stage.addEventListener('wheel',e=>{ e.preventDefault(); if(mode==='top') orbit.r=Math.min(90,Math.max(6,orbit.r*(1+e.deltaY*0.001))); },{passive:false});
 const joy=$('#joy'), knob=joy.querySelector('i'); const J={x:0,y:0,id:null};
@@ -1815,11 +1855,12 @@ function sightRay(B,x,y,ang,max){ const dx=-Math.sin(ang), dy=Math.cos(ang); let
 const STOP_VIEW={care:{p:[15.2,1.7],look:[8.5,4.6]},dining:{p:[14.5,14.1],look:[6,18]},kids:{p:[6.9,13.15],look:[4.2,11.5]},media:{p:[14.6,13.15],look:[12.0,11.8]},guest:{p:[16.4,15.1],look:[17.0,12.6]},roof:{p:[1.9,1.9],look:[11,5]},roofN:{p:[1.0,16.3],look:[12,18]}};   // 옥상: 화단·태양광을 피해 정한 시점
 function viewpoint(B,from){ // walk to the corner that sees the most of the room, then face across it
   const V=STOP_VIEW[B.id]; if(V) return {p:V.p,via:null,yaw:Math.atan2(-(V.look[0]-V.p[0]),V.look[1]-V.p[1]),score:0};
-  const R=stopRoom(B); if(!R) return null; const SB=sightBlockers(R.f);
+  const R=stopRoom(B); if(!R) return null; return roomView(R,from); }
+function roomView(R,from){ const SB=sightBlockers(R.f);
   const f=R.f, [x1,y1,x2,y2]=R.r, cx=(x1+x2)/2, cy=(y1+y2)/2, ins=Math.min(0.6,(x2-x1)/4,(y2-y1)/4);
   let best=null;
   for(const c of [[x1+ins,y1+ins],[x2-ins,y1+ins],[x1+ins,y2-ins],[x2-ins,y2-ins]]){
-    if(blocked(f,c[0],c[1])) continue;
+    if(blocked(f,c[0],c[1])||roomAt(f,c[0],c[1])!==R) continue;
     let via=null; if(!clearWalk(f,from,c)){ if(clearWalk(f,from,[cx,cy])&&clearWalk(f,[cx,cy],c)) via=[cx,cy]; else continue; }
     const yaw=Math.atan2(-(cx-c[0]),cy-c[1]); let score=0;
     for(let k=-3;k<=3;k++) score+=sightRay(SB,c[0],c[1],yaw+k*0.22,14);
@@ -1918,6 +1959,10 @@ function setRoute(D){
   $('#routeText').innerHTML=`<b>${from}</b>${via}${st} → <b>${D.name}</b><br>걷는 거리 약 ${Math.round(ROUTE.len)} m · 약 ${sec<60?sec+'초':Math.round(sec/60)+'분'}`;
   $('#route').hidden=false;
 }
+$('#rIn').onclick=()=>{ if(!PICK) return; const D=PICK, p=D.pts[D.pts.length-1];
+  const v=D.unit?(()=>{ const R=ROOMS.find(R=>R.f===D.f&&R.unit===D.name&&/거실/.test(R.name)); return R&&roomView(R,p); })():viewpoint(D,p);
+  if(v) enterAt(D.f,v.p[0],v.p[1],v.yaw); else enterAt(D.f,p[0],p[1]); };
+$('#inExit').onclick=exitInside;
 $('#rShow').onclick=()=>{ if(!PICK) return; stopAuto();
   if(ROUTE){ ROUTE=null; drawRoute(); $('#routeText').innerHTML=`<b>${PICK.name}</b> · ${PICK.fl}`; $('#rShow').textContent='가는 길 보기'; }
   else { setRoute(PICK); $('#rShow').textContent='경로 숨기기'; }
@@ -1941,10 +1986,10 @@ function refreshUI(){
   DBTN.forEach((b,i)=>b.setAttribute('aria-pressed',PICK===DESTS[i]));
   $('#mapFloor').textContent=FNAME[Math.max(0,vf)];
 }
-$('#hint').textContent = isTouch ? '한 손가락: 화면 이동 · 두 손가락: 확대·축소, 비틀면 회전, 함께 위아래로 밀면 기울이기'
-  : '끌기: 화면 이동 · 휠: 확대·축소 · 오른쪽 버튼(또는 Shift)+끌기: 회전·기울이기';
+$('#hint').textContent = isTouch ? '한 손가락: 화면 이동 · 두 손가락: 확대·축소, 비틀면 회전 · 두 번 톡톡: 그 자리로 들어가기'
+  : '끌기: 화면 이동 · 휠: 확대·축소 · 오른쪽 버튼(또는 Shift)+끌기: 회전·기울이기 · 더블클릭: 그 자리로 들어가기';
 function setMode(m){ mode=m;
-  joy.hidden=!(isTouch&&m==='walk'); $('#where').hidden=m!=='walk'; labelsEl.hidden=m!=='top';
+  joy.hidden=true; $('#inBar').hidden=!(m==='walk'&&!TOUR); $('#where').hidden=m!=='walk'; labelsEl.hidden=m!=='top';
   if(m==='top'&&ROUTE){ const tf=ROUTE.dest.f; cut=tf===4?-1:tf; orbit.tz=cut<0?5:LV[cut]+1; }
   routeMat.depthTest=chevMat.depthTest=m==='walk';
   camera.fov=m==='walk'?72:42; camera.updateProjectionMatrix(); lamp.visible=m==='walk'; refreshUI(); }
@@ -2344,6 +2389,9 @@ function frame(now){
       if(keys.KeyD) s+=1; if(keys.KeyA) s-=1;
       if(keys.ArrowLeft) P.yaw+=1.8*dt; if(keys.ArrowRight) P.yaw-=1.8*dt;
       f-=J.y; s+=J.x;
+      if(WALKTO&&(f||s)) WALKTO=null;
+      if(WALKTO){ const dx=WALKTO[0]-P.x, dy=WALKTO[1]-P.y, d=Math.hypot(dx,dy), st=Math.min(d,1.5*dt);
+        if(d<0.04){ WALKTO=null; } else { const ox=P.x,oy=P.y; tryStep(P.x+dx/d*st,P.y); tryStep(P.x,P.y+dy/d*st); if(Math.hypot(P.x-ox,P.y-oy)<st*0.2) WALKTO=null; } }
       const m=Math.hypot(f,s); if(m>1){f/=m;s/=m;}
       const sp=(keys.ShiftLeft||keys.ShiftRight?3.2:1.5)*dt;
       if(m>0.01){ const dx=(f*-Math.sin(P.yaw)+s*Math.cos(P.yaw))*sp, dy=(f*Math.cos(P.yaw)+s*Math.sin(P.yaw))*sp; tryStep(P.x+dx,P.y); tryStep(P.x,P.y+dy); }
@@ -2371,7 +2419,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-if(window.__TEST__) window.__tour={orbit,viewpoint:(B,f)=>viewpoint(B,f),tourStops:()=>tourStops(),routeBetween:(a,b)=>routeBetween(a,b),startTour:()=>startTour(),TOURST:()=>TOUR,P,tryStep,footZ,FLOORS,buildRoute,HOMES,DESTS,ITEMS,select,placeProduct:(p)=>placeProduct(p),CATALOG,setEdit,LAYOUT:()=>LAYOUT};
+if(window.__TEST__) window.__tour={orbit,project:(f,x,y)=>{ const v=new THREE.Vector3(x,LV[f]+zAt(f,x,y),-y).project(camera); return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight]; },viewpoint:(B,f)=>viewpoint(B,f),tourStops:()=>tourStops(),routeBetween:(a,b)=>routeBetween(a,b),startTour:()=>startTour(),TOURST:()=>TOUR,P,tryStep,footZ,FLOORS,buildRoute,HOMES,DESTS,ITEMS,select,placeProduct:(p)=>placeProduct(p),CATALOG,setEdit,LAYOUT:()=>LAYOUT};
 })();
 </script>
 
