@@ -96,7 +96,10 @@ body.editing .editbtn{display:none}
 .edit{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:calc(max(16px,env(safe-area-inset-right,0px)));width:min(360px,calc(100vw - 32px));
   max-height:calc(100% - 230px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;z-index:6;
   backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:10px}
-.ehead{display:flex;justify-content:space-between;align-items:center}
+.ehead{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-12px;margin:-12px -12px 0;padding:12px 12px 8px;background:var(--panel);z-index:2;border-radius:12px 12px 0 0}
+.ehead .eclose{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.edit.min .shop,.edit.min #eHint,.edit.min #nickRow,.edit.min #logWrap,.edit.min .efoot,.edit.min .store{display:none!important}
+.edit.min #sel[hidden]+.shop{display:none!important}
 .ehead b{font-size:15px}
 .ehead button,.efoot button,.nudge button,.cats button,.ask,.rbtns button,.manual button{border:1px solid var(--line);background:var(--panel);color:var(--fg);font:500 12.5px var(--sans);padding:5px 9px;border-radius:7px;cursor:pointer}
 .edit .note{margin:0;font-size:11.5px;color:var(--muted);line-height:1.5}
@@ -232,7 +235,7 @@ body.touring #where,body.touring #joy,body.editing #joy{display:none!important}
 </section>
 
 <aside class="edit" id="edit" hidden aria-label="가구 편집">
-  <div class="ehead"><b>가구 편집</b><button id="eClose">닫기</button></div>
+  <div class="ehead"><b>가구 편집</b><span><button id="eShop">목록 접기</button> <button id="eClose" class="eclose">닫기</button></span></div>
   <p class="store" id="storeState">저장 방식을 확인하는 중…</p>
   <p class="note" id="eHint">바꾼 배치는 공용 데이터베이스에 남아 이 페이지를 여는 모든 사람에게 보여요. 가구를 누르면 선택돼요. 선택한 가구를 끌면 옮겨져요. </p>
   <section id="sel" hidden>
@@ -2249,7 +2252,9 @@ function startShared(db){
 /* ---------- selection & editing UI ---------- */
 let EDIT=false, SEL=null, selBox=null, DRAG=null;
 const editEl=$('#edit'), selEl=$('#sel');
-function setEdit(on){ EDIT=on; editEl.hidden=!on; document.body.classList.toggle('editing',on); $('#editBtn').setAttribute('aria-pressed',on); if(!on) select(null); if(on&&NARROW.matches) setTiny(true); renderResults(); }
+function setEditMin(min){ editEl.classList.toggle('min',min); $('#eShop').textContent=min?'＋ 제품 추가':'목록 접기'; }
+$('#eShop').onclick=()=>setEditMin(!editEl.classList.contains('min'));
+function setEdit(on){ EDIT=on; editEl.hidden=!on; if(on) setEditMin(NARROW.matches); document.body.classList.toggle('editing',on); $('#editBtn').setAttribute('aria-pressed',on); if(!on) select(null); if(on&&NARROW.matches) setTiny(true); renderResults(); }
 $('#editBtn').onclick=()=>setEdit(!EDIT);
 $('#nick').onchange=e=>{ NICK=e.target.value.trim().slice(0,20); try{ localStorage.setItem('yeonmaeul-nick',NICK); }catch(_){} }; $('#eClose').onclick=()=>setEdit(false);
 function select(it){
@@ -2333,12 +2338,15 @@ function renderResults(){
 function placeProduct(p){
   let f,x,y;
   if(mode==='walk'){ f=P.stair!==null?P.stair:P.f; x=P.x-Math.sin(P.yaw)*1.6; y=P.y+Math.cos(P.yaw)*1.6; }
-  else { f=cut<0?(HOME.f||0):cut; if(HOME.f===f){ x=HOME.path[0][0]; y=HOME.path[0][1]; } else { const R=ROOMS.find(R=>R.f===f&&R.spawn&&!/계단|엘리베이터/.test(R.name)); x=R?R.spawn[0]:9.97; y=R?R.spawn[1]:9.85; } }
+  else { // 위에서 보기: 지금 화면 가운데(보고 있는 곳)에 놓는다
+    f=cut<0?0:cut; const q=freeNear(f,orbit.tx,orbit.ty)||(()=>{ const R=ROOMS.find(R=>R.f===f&&R.spawn&&!/계단|엘리베이터/.test(R.name)); return R?R.spawn:[9.97,9.85]; })();
+    x=q[0]; y=q[1]; if(cut<0) focusAt(f,x,y,18); }
   const spec={...p, shape:p.shape||SHAPE_OF[p.cat]||'box'};
   const g=addProductItem(spec,f,x,y); if(mode==='walk') g.rotation.y=P.yaw+PI;
   refreshItemCollider(g);
   LAYOUT.adds.push({uid:g.userData.id,src:'cat',spec,f,p:[],r:0,s:[1,1,1]});
   select(g); edited('place');
+  if(NARROW.matches) setEditMin(true);   // 휴대폰: 놓은 가구가 보이도록 목록을 접는다
 }
 // Claude에게 실제 판매 제품 찾기 (sample capability; 실시간 웹 검색이 아니라 Claude가 아는 정보)
 let samplePromise=null;
