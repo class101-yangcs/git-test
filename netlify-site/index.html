@@ -1625,10 +1625,11 @@ function drawRoute(){
   });
   const last=ROUTE.legs[ROUTE.legs.length-1], [ex,ey]=last.pts[last.pts.length-1], ez=z(last.f,ex,ey);
   endPin=new THREE.Group();
-  const pin=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.45,20),new THREE.MeshBasicMaterial({color:0xd9822b})); pin.rotation.x=PI; pin.position.y=1.05; endPin.add(pin);
-  const ball=new THREE.Mesh(new THREE.SphereGeometry(0.2,20,14),new THREE.MeshBasicMaterial({color:0xd9822b})); ball.position.y=1.35; endPin.add(ball);
-  const ring=new THREE.Mesh(new THREE.RingGeometry(0.35,0.5,32),new THREE.MeshBasicMaterial({color:0xd9822b,transparent:true,opacity:.6,side:THREE.DoubleSide,depthWrite:false})); ring.rotation.x=-PI/2; ring.position.y=0.02; endPin.add(ring);
-  endPin.position.set(ex,ez,-ey); routeG.add(endPin);
+  // small marker kept low (below eye level) so it never covers the room; hidden once you are close
+  const pin=new THREE.Mesh(new THREE.ConeGeometry(0.07,0.16,16),new THREE.MeshBasicMaterial({color:0xd9822b})); pin.rotation.x=PI; pin.position.y=0.42; endPin.add(pin);
+  const ball=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,10),new THREE.MeshBasicMaterial({color:0xd9822b})); ball.position.y=0.54; endPin.add(ball);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(0.16,0.22,32),new THREE.MeshBasicMaterial({color:0xd9822b,transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false})); ring.rotation.x=-PI/2; ring.position.y=0.03; endPin.add(ring);
+  endPin.position.set(ex,ez,-ey); endPin.userData={x:ex,y:ey,f:last.f}; routeG.add(endPin);
 }
 
 /* ---------- follow the route (따라 걷기) ---------- */
@@ -2193,7 +2194,8 @@ const v3=new THREE.Vector3();
 function frame(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now;
   chevTex.offset.x=(chevTex.offset.x-dt*1.2)%1;
-  if(endPin){ endPin.children[0].position.y=1.05+Math.sin(now/300)*0.08; endPin.children[1].position.y=1.35+Math.sin(now/300)*0.08; const s=1+((now/900)%1)*0.6; endPin.children[2].scale.set(s,s,s); }
+  if(endPin&&endPin.parent){ const u=endPin.userData, near=mode==='walk'&&P.f===u.f&&Math.hypot(P.x-u.x,P.y-u.y)<1.6; endPin.visible=!near;
+    endPin.children[0].position.y=0.42+Math.sin(now/300)*0.04; endPin.children[1].position.y=0.54+Math.sin(now/300)*0.04; const s=1+((now/900)%1)*0.4; endPin.children[2].scale.set(s,s,s); }
   if(mode==='walk'){
     if(TOUR) tourTick(dt);
     if(AUTO&&!(TOUR&&TOUR.paused)) stepAuto(dt);
