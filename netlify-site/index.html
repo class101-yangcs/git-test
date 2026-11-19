@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="다가구주택 3D 투어">
+<meta name="description" content="다가구주택 3D 길찾기 투어">
 <style>*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
 <title>연마을 주택 둘러보기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,7 +40,7 @@ h1{margin:0;white-space:nowrap;font-size:19px;font-weight:700;letter-spacing:-.0
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--chip);border-radius:8px;padding:3px;gap:3px}
 .seg button{border:0;background:transparent;color:var(--fg);font:500 13px var(--sans);padding:7px 6px;border-radius:6px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
-.floors{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.floors{display:grid;grid-template-columns:repeat(auto-fit,minmax(48px,1fr));gap:4px}
 .floors button{border:1px solid var(--line);background:transparent;color:var(--fg);font:500 12.5px var(--sans);padding:6px 2px;border-radius:7px;cursor:pointer}
 .floors button[aria-pressed="true"]{border-color:var(--accent);background:var(--chip)}
 .lbl{font-size:11px;color:var(--muted);margin-bottom:-4px}
@@ -54,7 +54,20 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .hint{font-size:12px;color:var(--muted);line-height:1.5}
 .hint kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 4px}
 .toggle{border:0;background:none;color:var(--muted);font:400 12px var(--sans);cursor:pointer;padding:0}
-.card.min .rooms,.card.min .hint,.card.min .legend,.card.min .lbl{display:none}
+.card.min .homes,.card.min #dests,.card.min .hint,.card.min details,.card.min .lbl,.card.min .floors{display:none}
+.homes{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.homes button{border:1px solid var(--line);background:transparent;color:var(--fg);font:500 12.5px var(--sans);padding:6px 2px;border-radius:7px;cursor:pointer;font-variant-numeric:tabular-nums}
+.homes button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.homes button.wide{grid-column:span 2}
+#dests button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+#dests button small{font-size:10.5px;opacity:.75;margin-left:3px}
+.route{background:var(--chip);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.route p{margin:0;font-size:12.5px;line-height:1.5}
+.route p b{font-weight:700}
+.rbtns{display:flex;flex-wrap:wrap;gap:6px}
+.rbtns button{border:1px solid var(--line);background:var(--panel);color:var(--fg);font:500 12.5px var(--sans);padding:6px 10px;border-radius:7px;cursor:pointer}
+.rbtns button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+details summary{font-size:12px;color:var(--muted);cursor:pointer;margin-bottom:6px}
 .legend{border:1px solid var(--line);border-radius:8px;margin:0;padding:6px 10px 8px;display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;font-size:12.5px}
 .legend legend{font-size:11px;color:var(--muted);padding:0 4px}
 .legend label{display:flex;align-items:center;gap:6px;cursor:pointer}
@@ -91,26 +104,25 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 <div id="labels"></div>
 <div id="tip" hidden></div>
 
-<section class="card" id="card" aria-label="둘러보기 조작">
+<section class="card" id="card" aria-label="길 찾기와 둘러보기">
   <div class="head">
     <h1>연마을 다가구주택</h1>
-    <span class="dim">지상 4층 · 18.8 × 19.7 m</span>
+    <span class="dim">지상 4층 · 10세대</span>
+  </div>
+  <div class="lbl">우리 집</div>
+  <div class="homes" id="homes" role="group" aria-label="출발할 집"></div>
+  <div class="lbl">어디로 갈까요?</div>
+  <div class="rooms" id="dests" role="group" aria-label="목적지"></div>
+  <div class="route" id="route" hidden>
+    <p id="routeText"></p>
+    <div class="rbtns"><button id="rFollow" class="primary">따라 걷기</button><button id="rJump">바로 가기</button><button id="rClear">경로 지우기</button></div>
   </div>
   <div class="seg" role="group" aria-label="보기 방식">
     <button id="mWalk" aria-pressed="true">걸어보기</button>
     <button id="mTop" aria-pressed="false">위에서 보기</button>
   </div>
   <div class="floors" id="floors" role="group" aria-label="층 선택"></div>
-  <div class="lbl" id="placesLbl">이 층의 공간</div>
-  <div class="rooms" id="rooms"></div>
-  <fieldset class="legend" id="legend">
-    <legend>403호 전기 위치 표시</legend>
-    <label><input type="checkbox" id="sLight" checked><i style="background:#e2a019"></i>조명 <span class="dim" id="nLight"></span></label>
-    <label><input type="checkbox" id="sSwitch" checked><i style="background:#2f6fd0"></i>스위치 <span class="dim" id="nSwitch"></span></label>
-    <label><input type="checkbox" id="sOutlet" checked><i style="background:#d2493a"></i>콘센트 <span class="dim" id="nOutlet"></span></label>
-    <label><input type="checkbox" id="lampsOn" checked>실내등 켜기</label>
-    <p class="note">조명·스위치는 조명설비도면 기준, 콘센트는 견적 수량(21개)대로 추정한 위치예요(점선). 표시를 누르면 설명이 나와요.</p>
-  </fieldset>
+  <details id="more"><summary id="placesLbl">이 층 공간 바로 가기</summary><div class="rooms" id="rooms"></div></details>
   <div class="hint" id="hint"></div>
   <button class="toggle" id="fold">접기</button>
 </section>
@@ -317,6 +329,16 @@ Object.assign(M,{
             for(let y=30;y<h;y+=86) for(let x=26;x<w;x+=86) g.fillRect(x,y,46,40); }),roughness:.9}),3),
   nbr2: withT(new THREE.MeshStandardMaterial({map:canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#c9c2b6'; g.fillRect(0,0,w,h); g.fillStyle='#7d8a94';
             for(let y=30;y<h;y+=86) for(let x=20;x<w;x+=128) g.fillRect(x,y,80,36); }),roughness:.9}),3),
+});
+Object.assign(M,{
+  gxFloor: new THREE.MeshStandardMaterial({map:woodTex,color:0xf0dfc4,roughness:.45,side:THREE.DoubleSide}),
+  cork: new THREE.MeshStandardMaterial({color:0xb48a5e,roughness:1}),
+  matA: new THREE.MeshStandardMaterial({color:0x7aa7a0,roughness:.9}), matB: new THREE.MeshStandardMaterial({color:0xd8a06b,roughness:.9}), matC: new THREE.MeshStandardMaterial({color:0x9d8fbf,roughness:.9}),
+  playMat: new THREE.MeshStandardMaterial({map:canvasTex(512,512,(g,w,h)=>{ const c=['#f2c9a8','#bfdcc5','#c7d6ef','#f3e2a6','#e8c2d4','#d5e6b5'];
+            for(let i=0;i<4;i++) for(let j=0;j<4;j++){ g.fillStyle=c[(i*3+j*2)%c.length]; g.fillRect(i*w/4,j*h/4,w/4,h/4); }
+            g.strokeStyle='rgba(255,255,255,.7)'; g.lineWidth=3; for(let i=0;i<=4;i++){ g.beginPath(); g.moveTo(i*w/4,0); g.lineTo(i*w/4,h); g.stroke(); g.beginPath(); g.moveTo(0,i*h/4); g.lineTo(w,i*h/4); g.stroke(); } }),roughness:.9,side:THREE.DoubleSide}),
+  toyR: new THREE.MeshStandardMaterial({color:0xe07b5f,roughness:.6}), toyY: new THREE.MeshStandardMaterial({color:0xf0c75e,roughness:.6}),
+  toyB: new THREE.MeshStandardMaterial({color:0x6fa3d8,roughness:.6}), toyG: new THREE.MeshStandardMaterial({color:0x82b97a,roughness:.6}),
 });
 const railTex = canvasTex(128,128,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='#3e4044'; for(let x=0;x<w;x+=16) g.fillRect(x,0,3,h); });
 railTex.wrapS=THREE.RepeatWrapping;
@@ -749,7 +771,7 @@ function northUnit(){
   box(1.1,19.0,0.9,1.7,19.45,0.905,M.black); box(2.1,19.05,0.88,2.75,19.4,0.905,M.steel);
   box(0.2,19.15,1.5,3.0,19.5,2.3,M.film); box(2.95,18.85,0,3.6,19.5,2.1,M.beige,true);
   table(1.2,15.7,2.4,16.5,M.marble); chair(1.5,15.45); chair(2.1,15.45); chair(1.5,16.75); chair(2.1,16.75);
-  sofa(0.2,12.6,1.05,14.6,'W'); box(3.48,12.6,0,3.6,14.4,0.45,M.film,true); box(3.56,12.8,0.95,3.6,14.2,1.7,M.black);
+  sofa(0.2,12.6,1.05,14.6,'W'); box(3.48,12.45,0,3.6,13.55,0.45,M.film,true); box(3.56,12.55,0.95,3.6,13.45,1.6,M.black);
   // rooms
   bed(4.2,18.4,6.2,19.5,'E'); table(3.8,16.7,4.9,17.3,M.oak); box(5.7,16.6,0,6.32,17.8,2.2,M.film,true);
   bed(7.24,17.2,9.34,18.8,'E'); box(6.44,18.9,0,8.4,19.5,2.2,M.film,true);
@@ -848,7 +870,7 @@ function unit402(){
   box(16.0,19.0,0.9,16.6,19.45,0.905,M.black); box(17.3,19.05,0.88,17.95,19.4,0.905,M.steel); box(15.2,19.15,1.5,18.6,19.5,2.3,M.film);
   box(15.2,18.2,0,15.85,18.85,2.1,M.beige,true);
   table(16.2,15.8,17.5,16.6,M.marble); chair(16.5,15.55); chair(17.2,15.55); chair(16.5,16.85); chair(17.2,16.85);
-  sofa(17.75,12.6,18.6,14.6,'E'); box(15.2,12.6,0,15.32,14.0,0.45,M.film,true); box(15.2,12.8,0.95,15.24,13.8,1.6,M.black);
+  sofa(17.75,12.6,18.6,14.6,'E'); box(15.2,12.45,0,15.32,13.55,0.45,M.film,true); box(15.2,12.55,0.95,15.24,13.45,1.6,M.black);
   // baths
   toilet(9.9,15.0,'N'); basin(10.5,14.67,11.0,15.1); box(9.46,15.6,0,11.0,16.36,0.03,M.bathF); box(9.46,15.55,0,11.0,15.57,2.0,M.glass);
   toilet(14.6,16.0,'S'); basin(13.0,15.9,13.5,16.36); box(14.1,14.67,0.0,15.08,15.4,0.55,M.china,true);
@@ -888,6 +910,50 @@ const NE302_ROOMS=[['현관',[9.46,13.02,10.84,13.68],[9.8,14.1,-1.57]],['복도
   ['주방·거실',[12.3,13.68,15.08,19.5],[12.7,14.2,-0.4]],['안방',[9.46,16.48,12.18,19.5],[11.8,17.0,1.0]],
   ['안방 욕실',[9.46,14.67,12.18,16.36],[11.35,16.1,PI]],['방',[15.2,16.28,18.6,19.5],[15.6,17.0,-0.9],0],
   ['방 2',[15.2,12.4,18.6,16.16],[15.6,14.1,-1.2]],['작은방',[11.97,11.1,15.08,13.56],[12.5,13.2,2.6]]];
+
+/* ---------- 2층 북측 공용공간 (FL -780): 북카페 · 회의실 · 멀티미디어실 · GX실 ---------- */
+const bookTex=canvasTex(512,256,(g,w,h)=>{ g.fillStyle='#6b5640'; g.fillRect(0,0,w,h);
+  const cols=['#b5533c','#3f6e8c','#d9b44a','#5f8a5b','#8c5a7a','#e8e2d4','#2f4a5e','#c7834a','#7a7f86'];
+  for(let r=0;r<4;r++){ let x=4; while(x<w-6){ const bw=6+rnd()*12, bh=h/4-10-rnd()*14; g.fillStyle=cols[(rnd()*cols.length)|0]; g.fillRect(x,r*h/4+(h/4-4-bh),bw,bh); x+=bw+1; }
+    g.fillStyle='#4a3a2a'; g.fillRect(0,(r+1)*h/4-4,w,4); } });
+M.books=new THREE.MeshStandardMaterial({map:bookTex,roughness:.85});
+function bookcase(x1,y1,x2,y2,h){ box(x1,y1,0,x2,y2,h,M.books,true); }
+function commons2(){
+  wall(0,0.2,12.2,19.7,[W(12.5,13.5,0.9,2.3),W(15.3,17.0,0.9,2.3)]);
+  wall(18.6,18.8,12.2,19.7,[W(12.5,13.5,0.9,2.3),W(15.3,17.0,0.9,2.3)]);
+  wall(0,18.8,19.5,19.7,NWIN.map(([a,b])=>W(a,b,1.1,2.3)));
+  wall(0,3.72,12.2,12.4,[W(0.9,2.75,0.9,2.3)]); wall(15.08,18.8,12.2,12.4,[W(16.05,17.9,0.9,2.3)]);
+  wall(3.6,3.72,10.9,12.4,[W(11.1,11.85,0.9,2.3)]); wall(15.08,15.2,10.9,12.4,[W(11.1,11.85,0.9,2.3)]);
+  wall(3.6,6.95,10.9,11.1,[W(4.2,5.9,0.9,2.3)]); wall(11.85,15.2,10.9,11.1,[W(12.9,14.6,0.9,2.3)]);
+  solid(6.83,10.9,7.96,13.0,H); solid(10.84,10.9,11.97,13.0,H);
+  wall(7.84,10.96,12.9,13.02,[{a:8.3,b:10.5,t:'open',hi:2.4}]);
+  // 로비를 중심으로 북카페(서) · 회의실 · 멀티미디어실(북) · GX실(동)
+  wall(6.83,6.95,13.02,19.5,[{a:13.3,b:15.0,t:'open',hi:2.4}]);
+  wall(11.85,11.97,13.02,19.5,[DR(13.5,14.6,'a',1)]);
+  wall(6.95,11.85,15.2,15.32,[DR(7.6,8.5,'a',1),DR(10.25,11.15,'b',1)]);
+  wall(9.34,9.46,15.32,19.5);
+  floorRects([[0.2,12.4,18.6,19.5],[3.72,11.1,6.83,12.4],[11.97,11.1,15.08,12.4]],0,M.wood,1.6);
+  floor(11.97,11.1,18.6,19.5,0.006,M.gxFloor,1.6);
+  [[2,14],[2,17.5],[4.8,14],[4.8,17.5],[5.2,11.8],[9.4,14.1],[8.1,17.4],[10.6,17.4],[13.5,13],[15.3,15.5],[15.3,18],[17.5,15.5],[17.5,18],[13.5,11.8]].forEach(([x,y])=>downl(x,y,3.38));
+  // 북카페: 벽면 서가, 창 아래 낮은 서가, 카페 바, 열람 테이블, 소파 코너
+  bookcase(0.2,13.6,0.55,15.2,2.2); bookcase(0.2,17.1,0.55,19.4,2.2); bookcase(0.6,19.1,6.7,19.5,1.0);
+  box(6.2,15.5,0,6.83,18.2,1.05,M.oak,true); box(6.15,15.45,1.05,6.83,18.25,1.09,M.marble); box(6.4,16.0,1.09,6.7,16.4,1.45,M.black);
+  table(2.4,14.0,5.0,14.9,M.oak); [2.8,3.7,4.6].forEach(x=>{ chair(x,13.75); chair(x,15.15); });
+  [[2.1,16.6],[2.1,18.2],[4.0,18.2]].forEach(([x,y])=>{ table(x-0.4,y-0.4,x+0.4,y+0.4,M.marble); chair(x-0.6,y); chair(x+0.6,y); });
+  box(3.9,11.2,0,6.7,12.9,0.012,M.rug); sofa(3.72,11.2,4.6,12.9,'W'); sofa(4.8,11.1,6.7,11.95,'S'); table(4.9,12.2,5.8,12.8,M.oak,0.4);
+  // 로비: 벤치, 게시판
+  box(7.1,13.1,0,8.1,13.5,0.45,M.oak,true); box(11.7,13.4,1.1,11.85,15.0,1.9,M.cork);
+  // 회의실: 8인 테이블, 화면, 화이트보드
+  table(7.55,16.0,8.75,18.7,M.oak); [16.4,17.3,18.2].forEach(y=>{ chair(7.25,y); chair(9.05,y); });
+  box(9.28,16.3,1.0,9.34,18.3,2.1,M.black); box(6.95,16.2,0.9,7.0,18.6,2.0,M.china);
+  // 멀티미디어실: 대형 스크린, 소파 좌석, AV 랙
+  box(9.46,15.6,0.5,9.52,19.2,2.4,M.black); sofa(10.9,15.8,11.8,18.6,'E'); box(9.6,18.95,0,10.4,19.45,1.1,M.dark,true);
+  [[10.2,16.2],[10.2,17.4]].forEach(([x,y])=>{ const s=new THREE.Mesh(new THREE.SphereGeometry(0.32,16,10),M.sofa); s.scale.y=0.6; s.position.set(x,0.2,-y); world.add(s); });
+  // GX실: 거울벽, 발레바, 요가매트, 소도구 선반
+  box(11.97,15.4,0.05,12.0,19.4,2.4,M.mirror); box(12.12,15.4,0.95,12.16,19.4,1.0,M.oak);
+  for(let i=0;i<3;i++) for(let j=0;j<2;j++){ const x=13.4+i*1.6, y=15.6+j*1.9; box(x,y,0.006,x+0.65,y+1.75,0.02,[M.matA,M.matB,M.matC][(i+j)%3]); }
+  shelf(18.0,12.6,18.55,14.2,1.6); box(12.2,11.2,0,13.4,11.7,0.8,M.dark,true);
+}
 
 /* ---------- 공통: 외벽 부재 ---------- */
 const NWIN=[[1.26,2.53],[4.26,5.53],[7.28,8.55],[10.27,11.54],[13.27,14.53],[16.24,17.5]];   // 배면도 창 위치
@@ -953,15 +1019,23 @@ function groundFloor(){
   floorRects([[2.95,6.45,10.58,8.6],[8.22,8.6,10.58,12.9],[2.95,1.09,4.64,6.45]],0.004,M.entry,1.2);
   floorRects([[6.57,5.22,15.94,6.33],[4.64,5.22,6.57,6.33],[6.57,1.09,15.94,5.22]],0.004,M.shopFloor,1.2);
   floor(10.7,6.45,12.32,8.48,0.004,M.bathF,1.2);
-  // 휴게음식점2 furniture
-  box(13.2,5.2,0,15.8,5.8,1.05,M.film,true); box(13.2,5.2,1.05,15.8,5.85,1.08,M.marble);
-  [[8.0,2.3],[10.0,2.3],[12.0,2.3],[8.0,4.0],[10.0,4.0]].forEach(([x,y])=>{ table(x-0.4,y-0.4,x+0.4,y+0.4,M.marble); chair(x-0.6,y); chair(x+0.6,y); });
+  // 공동육아 공간: 놀이매트, 낮은 교구장, 아이 책상·의자, 그림책 코너, 놀이집·미끄럼틀, 간식·수유 카운터
+  floor(6.8,1.4,12.3,5.0,0.01,M.playMat,1.2);
+  box(13.2,5.2,0,15.8,5.8,0.9,M.film,true); box(13.2,5.2,0.9,15.8,5.85,0.93,M.marble); box(15.0,5.3,0.93,15.3,5.6,1.2,M.steel);
+  [[6.7,5.9,9.4,6.3],[10.7,5.9,13.0,6.3]].forEach(([x1,y1,x2,y2])=>{ box(x1,y1,0,x2,y2,0.9,M.film,true);
+    for(let x=x1+0.05;x<x2-0.3;x+=0.42) box(x,y1-0.01,0.1+((x*7|0)%2)*0.4,x+0.36,y1+0.05,0.4+((x*7|0)%2)*0.4,[M.toyR,M.toyY,M.toyB,M.toyG][(x*3|0)%4]); });
+  [[13.6,2.6],[13.6,4.2]].forEach(([x,y])=>{ box(x-0.5,y-0.35,0.46,x+0.5,y+0.35,0.5,M.oak,true); [[-0.45,0],[0.45,0]].forEach(([dx])=>{ box(x+dx*1.5-0.15,y-0.15,0,x+dx*1.5+0.15,y+0.15,0.28,[M.toyY,M.toyB][dx>0?1:0]); }); });
+  box(6.7,1.2,0,7.1,2.9,1.1,M.books,true); [[7.6,1.7],[7.6,2.5],[8.2,2.1]].forEach(([x,y],k)=>{ const s=new THREE.Mesh(new THREE.SphereGeometry(0.3,16,10),[M.toyR,M.toyB,M.toyG][k]); s.scale.y=0.45; s.position.set(x,0.14,-y); world.add(s); });
+  box(7.0,3.4,0,8.2,4.6,1.1,M.toyY,true); const rf=new THREE.Mesh(new THREE.ConeGeometry(0.95,0.7,4),M.toyR); rf.rotation.y=PI/4; rf.position.set(7.6,1.45,-4.0); rf.castShadow=true; world.add(rf);
+  box(8.19,3.8,0,8.21,4.2,0.8,M.dark);
+  box(11.6,1.6,0,12.2,2.2,1.2,M.toyB,true); const sl=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.04,1.9),M.toyG); sl.position.set(11.9,0.62,-3.05); sl.rotation.x=0.68; world.add(sl);
+  box(14.5,1.15,0,15.85,1.5,0.9,M.oak,true);
   // steps from core landing down to 휴게음식점1 (FL -540)
   for(let i=0;i<4;i++){ const y=12.9+i*0.165; box(8.6,y,-0.54,10.2,y+0.165,-0.135*(i+1),M.entry); }
   // 데크 (FL ±0)
   floorRects([[0,10.9,3.6,12.6],[15.2,10.9,18.8,12.6]],0.0,M.deck,1.6);
 }
-function cafeNorth(){ // 휴게음식점1 · 창고 · 데크 계단, FL -540 (built with dz=-0.54)
+function cafeNorth(){ // 공용식당 · 창고 · 데크 계단, FL -540 (built with dz=-0.54)
   H=4.13; WALLMAT=M.brickN; GLASSMAT=M.extGlass;
   wall(0,18.8,19.5,19.7,NWIN.map(([a,b])=>W(a,b,1.0,3.0)));
   NWIN.forEach(([a,b])=>{ facePanel('x',19.7,1,a-0.06,b+0.06,0,1.0,M.alu); facePanel('x',19.7,1,a-0.06,b+0.06,3.0,4.13,M.alu); });
@@ -983,12 +1057,15 @@ function cafeNorth(){ // 휴게음식점1 · 창고 · 데크 계단, FL -540 (b
     floor(cx1,10.9,cx2,13.44,0.004,M.conc,1.2);
     shelf(cx1+0.1,11.0,cx2-0.1,11.5,2.0);
   }
-  // counter + tables + pendants
-  box(12.6,14.0,0,16.4,14.6,1.05,M.oak,true); box(12.55,13.95,1.05,16.45,14.65,1.09,M.marble);
-  box(13.0,13.6,0,16.0,13.95,2.0,M.film);
-  [[2,15.5],[2,17.8],[4.6,15.5],[4.6,17.8],[7.2,16.6],[10.6,16.6],[13.4,17.8],[16.2,17.8],[16.2,16.0]].forEach(([x,y])=>{
-    cyl(x,y,0.72,0.75,0.42,0.42,M.oak); cyl(x,y,0,0.72,0.04,0.04,M.dark,8); chair(x-0.6,y); chair(x+0.6,y);
-    cyl(x,y,2.7,4.1,0.006,0.006,M.dark,4); cyl(x,y,2.55,2.7,0.03,0.17,M.film); });
+  // 공용식당: 오픈 주방(아일랜드 + 벽면 조리대), 긴 공동 식탁과 벤치, 배식대
+  box(18.0,13.7,0,18.6,19.3,0.88,M.film,true); box(17.98,13.7,0.88,18.6,19.3,0.91,M.marble); box(18.3,13.7,0,18.6,14.4,2.1,M.steel,true);
+  box(15.6,15.2,0,17.2,17.8,0.88,M.film,true); box(15.55,15.15,0.88,17.25,17.85,0.92,M.marble);
+  box(16.0,15.6,0.92,16.6,16.2,0.925,M.black); box(16.6,16.8,0.9,17.1,17.4,0.925,M.steel);
+  box(14.4,13.75,0,15.3,14.3,0.9,M.oak,true);
+  for(const [x1,x2] of [[1.6,8.4],[10.4,14.6]]) for(const y of [15.4,17.6]){
+    box(x1,y,0.72,x2,y+0.95,0.76,M.oak,true); [x1+0.2,x2-0.25].forEach(x=>box(x,y+0.1,0,x+0.05,y+0.85,0.72,M.dark));
+    box(x1+0.2,y-0.45,0.42,x2-0.2,y-0.15,0.46,M.oak); box(x1+0.2,y+1.1,0.42,x2-0.2,y+1.4,0.46,M.oak);
+    for(let x=x1+0.9;x<x2;x+=1.6){ cyl(x,y+0.47,2.7,4.1,0.006,0.006,M.dark,4); cyl(x,y+0.47,2.55,2.7,0.03,0.2,M.film); } }
 }
 
 /* ---------- 외피(2~4층) — 정면도·측면도·배면도 마감 ----------
@@ -1140,14 +1217,15 @@ for(let f=1;f<=3;f++){
   build(f,{shell:true,dz:-0.25},()=>shellUpper(f,'S'));
   build(f,{shell:true,dz:f===1?-1.03:-0.25},()=>shellUpper(f,'N'));
   const se=['','201호','303호','403호'][f], sw=['','202호','304호','404호'][f];
-  build(f,{ox:9.4,elec:f===3,tint:f===3?-1:f*4},unit403); build(f,{ox:9.4,mirror:true,tint:f*4+1},unit403);
+  build(f,{ox:9.4,tint:f*4},unit403); build(f,{ox:9.4,mirror:true,tint:f*4+1},unit403);
   addRooms(f,se,ROOMS403,{ox:9.4}); addRooms(f,sw,ROOMS403,{ox:9.4,mirror:true});
   build(f,{},()=>coreUpper(f));
   addRooms(f,'공용',[['계단·엘리베이터 홀',[8.22,7.6,10.58,12.9],[9.9,9.3,PI]],['엘리베이터',[10.7,8.9,12.3,10.8],[11.6,9.85,PI/2]]]);
   if(f===1){
-    build(1,{dz:-0.78,H:3.41},communal);
-    addRooms(1,'공용',[['주민공동실',[3.72,13.02,15.08,19.5],[9.4,13.4,0]],['주민공동실',[3.72,11.1,6.83,13.68]],['주민공동실',[11.97,11.1,15.08,13.68]],
-      ['대형 공용창고',[0.2,12.4,3.6,19.5],[2.8,15.2,PI/2]],['소형 공용창고 1',[15.2,16.42,18.6,19.5],[15.8,17.5,-PI/2]],['소형 공용창고 2',[15.2,12.4,18.6,16.3],[15.8,14.4,-PI/2]]]);
+    build(1,{dz:-0.78,H:3.41},commons2);
+    addRooms(1,'공용',[['북카페',[0.2,12.4,6.83,19.5],[4.4,15.2,1.9]],['북카페',[3.72,11.1,6.83,12.4]],['공용 로비',[6.95,13.02,11.85,15.2],[9.4,13.6,0]],
+      ['회의실',[6.95,15.32,9.34,19.5],[8.05,15.7,0]],['멀티미디어실',[9.46,15.32,11.85,19.5],[10.3,16.6,PI/2]],
+      ['GX실',[11.97,12.4,18.6,19.5],[14.6,15.6,-0.6]],['GX실',[11.97,11.1,15.08,12.4]]]);
   } else {
     build(f,{tint:f*4+2},northUnit); build(f,{tint:f*4+3},f===2?unit302:unit402);
     addRooms(f,f===2?'301호':'401호',NORTH_ROOMS); addRooms(f,f===2?'302호':'402호',f===2?NE302_ROOMS:NE402_ROOMS);
@@ -1155,10 +1233,10 @@ for(let f=1;f<=3;f++){
 }
 build(4,{shell:true},roof);
 addRooms(0,'1층',[
-  ['휴게음식점1 (카페)',[0.2,13.56,18.6,19.5],[9.4,14.4,0]], ['휴게음식점2',[6.57,1.09,15.94,6.33],[13.9,1.6,0.5]],
+  ['공용식당',[0.2,13.56,18.6,19.5],[9.4,15.0,0]], ['공동육아 공간',[6.57,1.09,15.94,6.33],[10.1,4.4,PI]],['공동육아 공간',[4.76,5.22,6.57,6.33]],
   ['방풍실',[2.95,1.09,4.64,6.33],[3.8,1.6,0]], ['1층 홀',[2.95,6.45,10.58,8.6],[3.5,7.6,-PI/2]], ['화장실',[10.7,6.45,12.32,8.48],[11.0,7.6,-PI/2],1],
   ['계단·엘리베이터 홀',[8.22,8.6,10.58,12.9],[9.9,9.0,0]], ['엘리베이터',[10.7,8.9,12.3,10.8],[11.6,9.85,PI/2]],
-  ['창고 (휴게음식점2)',[4.76,1.15,6.45,5.1],[5.95,4.6,PI]], ['서측 창고',[4.76,10.9,6.36,13.44],[5.9,13.1,PI]], ['동측 창고',[12.44,10.9,14.04,13.44],[12.9,13.1,PI]],
+  ['교구 창고',[4.76,1.15,6.45,5.1],[5.95,4.6,PI]], ['식당 창고(서)',[4.76,10.9,6.36,13.44],[5.9,13.1,PI]], ['식당 창고(동)',[12.44,10.9,14.04,13.44],[12.9,13.1,PI]],
   ['데크 계단',[3.72,10.9,4.64,13.44],[4.2,11.1,0]], ['데크 계단',[14.16,10.9,15.08,13.44],[14.6,11.1,0]],
   ['서측 주차장',[-2.6,-0.6,2.95,9.6],[1.0,-2.2,0.25]], ['동측 주차장',[15.94,-0.6,21.4,9.6],[17.6,-2.2,-0.25]],
   ['데크',[0,10.9,3.6,12.6],[1.8,11.3,0]], ['데크',[15.2,10.9,18.8,12.6],[17,11.3,0]],
@@ -1166,6 +1244,40 @@ addRooms(0,'1층',[
 ]);
 addRooms(4,'옥상',[['휴게데크',[7.7,-0.2,13.0,4.0],[10.3,3.2,PI]],['옥상정원',[0,-0.2,18.8,8.1],[5.0,4.5,PI]],
   ['옥탑 계단실',[7.7,4.0,10.6,14.7],[9.9,12.3,PI]],['태양광·실외기',[0,12.2,18.8,19.7],[9.4,15.4,0]],['태양광·실외기',[6.36,12.2,12.44,19.7]]]);
+
+/* ---------- households & destinations (세대에서 원하는 곳으로) ---------- */
+const E=[9.97,9.85], CAB=[11.5,9.85];
+const SE_PATH=[[14.7,2.6],[14.7,5.7],[12.5,5.7],[10.9,5.7],[10.0,6.3],[10.0,7.5],[10.0,7.95],[9.97,7.95]];
+const SW_PATH=SE_PATH.slice(0,6).map(([x,y])=>[18.8-x,y]).concat([[8.8,7.95],[9.97,7.95]]);
+const NW_PATH=[[2.0,14.1],[3.0,14.1],[8.6,14.1],[8.6,13.4],[8.6,12.95],[8.6,12.4],[9.97,12.4]];
+const NE_PATH=[[16.5,14.0],[15.1,14.1],[10.2,14.1],[10.2,13.4],[10.2,12.95],[10.2,12.4],[9.97,12.4]];
+const NE302_PATH=[[14.7,15.0],[14.7,14.1],[10.2,14.1],[10.2,13.4],[10.2,12.95],[10.2,12.4],[9.97,12.4]];
+const HOMES=[
+  {id:'201',f:1,path:SE_PATH},{id:'202',f:1,path:SW_PATH},
+  {id:'301',f:2,path:NW_PATH},{id:'302',f:2,path:NE302_PATH},{id:'303',f:2,path:SE_PATH},{id:'304',f:2,path:SW_PATH},
+  {id:'401',f:3,path:NW_PATH},{id:'402',f:3,path:NE_PATH},{id:'403',f:3,path:SE_PATH},{id:'404',f:3,path:SW_PATH},
+  {id:'visitor',label:'방문객 (도로)',f:0,path:[[9.4,-6.5],[3.8,-2.5],[3.8,1.06],[3.8,5.6],[3.8,6.39],[3.8,7.6],[9.97,7.6]]},
+];
+const viaLobby=[[9.97,12.4],[9.4,12.6],[9.4,13.6]];
+const DESTS=[
+  {id:'dining',name:'공용식당',fl:'1층',f:0,pts:[[9.97,12.4],[9.4,12.7],[9.4,13.7],[9.4,15.0]],yaw:0},
+  {id:'care',name:'공동육아 공간',fl:'1층',f:0,pts:[[9.97,8.0],[10.1,7.0],[10.1,6.0],[10.1,4.4]],yaw:PI},
+  {id:'book',name:'북카페',fl:'2층',f:1,pts:viaLobby.concat([[7.6,14.15],[6.0,14.15],[5.6,15.6]]),yaw:1.9},
+  {id:'meet',name:'회의실',fl:'2층',f:1,pts:viaLobby.concat([[8.05,14.7],[8.05,15.7]]),yaw:0},
+  {id:'media',name:'멀티미디어실',fl:'2층',f:1,pts:viaLobby.concat([[10.7,14.7],[10.7,15.8],[10.3,16.6]]),yaw:PI/2},
+  {id:'gx',name:'GX실',fl:'2층',f:1,pts:viaLobby.concat([[10.5,14.15],[12.6,14.15],[14.6,15.6]]),yaw:-0.6},
+  {id:'roof',name:'옥상정원·휴게데크',fl:'옥상',f:4,pre:[[9.97,8.0],[8.8,8.0]],pts:[[8.8,11.95],[9.9,11.95],[9.9,5.45],[7.64,5.45],[6.6,5.45],[6.6,3.0],[9.0,2.4]],yaw:PI},
+  {id:'park',name:'주차장',fl:'1층',f:0,pts:[[9.97,7.6],[3.6,7.6],[2.2,7.6],[1.2,8.3]],yaw:2.0},
+];
+function buildRoute(H0,D){
+  const legs=[], hp=H0.path.concat([E]);
+  const tf=D.f===4?3:D.f, tail=D.f===4?D.pre:D.pts;
+  if(tf===H0.f) legs.push({f:tf,pts:hp.concat(tail)});
+  else { legs.push({f:H0.f,pts:hp.concat([CAB])}); legs.push({elev:[H0.f,tf]}); legs.push({f:tf,pts:[CAB,E].concat(tail)}); }
+  if(D.f===4){ legs.push({stair:3}); legs.push({f:4,pts:D.pts}); }
+  let len=0; legs.forEach(L=>{ if(L.pts) for(let i=1;i<L.pts.length;i++) len+=Math.hypot(L.pts[i][0]-L.pts[i-1][0],L.pts[i][1]-L.pts[i-1][1]); if(L.stair!==undefined) len+=4.5; });
+  return {legs,len,home:H0,dest:D};
+}
 
 /* ---------- lights ---------- */
 scene.add(new THREE.HemisphereLight(0xfff6ea,0xb9a483,0.62));
@@ -1221,7 +1333,7 @@ function tryStep(nx,ny){
 function footZ(){ if(P.stair!==null){ const k=P.stair, t=Math.min(1,Math.max(0,(P.y-S.y1)/(S.y2-S.y1))); return LV[k]+t*(LV[k+1]-LV[k]); }
   return LV[P.f]+zAt(P.f,P.x,P.y); }
 const keys={};
-addEventListener('keydown',e=>{ if(e.target.closest&&e.target.closest('button,input')&&(e.key===' '||e.key==='Enter')) return; keys[e.code]=true; });
+addEventListener('keydown',e=>{ if(e.target.closest&&e.target.closest('button,input,summary')&&(e.key===' '||e.key==='Enter')) return; keys[e.code]=true; if(AUTO&&/^(Key[WASD]|Arrow)/.test(e.code)) stopAuto(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });
 
@@ -1235,20 +1347,79 @@ stage.addEventListener('pointermove',e=>{
   if(ptrs.size===2&&mode==='top'){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y);
     if(pinch0) orbit.r=Math.min(90,Math.max(8,orbit.r*pinch0/d)); pinch0=d; return; }
   const k=isTouch?0.006:0.0042;
-  if(mode==='walk'){ P.yaw+=dx*k; P.pitch=Math.max(-1.3,Math.min(1.3,P.pitch+dy*k)); }
+  if(mode==='walk'){ P.yaw+=dx*k; P.pitch=Math.max(-1.3,Math.min(1.3,P.pitch+dy*k)); if(AUTO) AUTO.look=1.2; }
   else { orbit.theta-=dx*0.006; orbit.phi=Math.max(0.12,Math.min(1.5,orbit.phi-dy*0.005)); }
 });
 const pup=e=>{ ptrs.delete(e.pointerId); if(ptrs.size<2) pinch0=0; };
 stage.addEventListener('pointerup',pup); stage.addEventListener('pointercancel',pup);
 stage.addEventListener('wheel',e=>{ e.preventDefault(); if(mode==='top') orbit.r=Math.min(90,Math.max(8,orbit.r*(1+e.deltaY*0.001))); },{passive:false});
 const joy=$('#joy'), knob=joy.querySelector('i'); const J={x:0,y:0,id:null};
-joy.addEventListener('pointerdown',e=>{ J.id=e.pointerId; joy.setPointerCapture(e.pointerId); joyMove(e); });
+joy.addEventListener('pointerdown',e=>{ J.id=e.pointerId; joy.setPointerCapture(e.pointerId); joyMove(e); if(AUTO) stopAuto(); });
 joy.addEventListener('pointermove',e=>{ if(e.pointerId===J.id) joyMove(e); });
 const joyEnd=e=>{ if(e.pointerId!==J.id) return; J.id=null; J.x=J.y=0; knob.style.transform=''; };
 joy.addEventListener('pointerup',joyEnd); joy.addEventListener('pointercancel',joyEnd);
 function joyMove(e){ const r=joy.getBoundingClientRect(); let x=e.clientX-r.left-r.width/2, y=e.clientY-r.top-r.height/2;
   const m=Math.hypot(x,y), max=r.width/2-24; if(m>max){x*=max/m;y*=max/m;}
   knob.style.transform=`translate(${x}px,${y}px)`; J.x=x/max; J.y=y/max; }
+
+/* ---------- route drawing ---------- */
+const chevTex=canvasTex(64,64,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='#ffffff'; g.beginPath(); g.moveTo(14,8); g.lineTo(40,32); g.lineTo(14,56); g.lineTo(26,56); g.lineTo(52,32); g.lineTo(26,8); g.closePath(); g.fill(); });
+chevTex.wrapS=THREE.RepeatWrapping;
+const routeMat=new THREE.MeshBasicMaterial({color:0xd9822b,transparent:true,opacity:.92,depthWrite:false,side:THREE.DoubleSide});
+const chevMat=new THREE.MeshBasicMaterial({map:chevTex,color:0xffffff,transparent:true,depthWrite:false,side:THREE.DoubleSide});
+const routeG=new THREE.Group(); scene.add(routeG);
+function ribbon(a,b,w){ // a,b: [x,y,z] plan coords, flat ribbon between them
+  const dx=b[0]-a[0], dy=b[1]-a[1], L=Math.hypot(dx,dy,b[2]-a[2]); if(L<0.01) return;
+  const hx=Math.hypot(dx,dy)||1, px=-dy/hx*w/2, py=dx/hx*w/2;
+  const V=(x,y,z)=>[x,z,-y];
+  const pos=[...V(a[0]+px,a[1]+py,a[2]),...V(a[0]-px,a[1]-py,a[2]),...V(b[0]+px,b[1]+py,b[2]),...V(b[0]-px,b[1]-py,b[2])];
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute([0,1,0,0,L/0.45,1,L/0.45,0],2)); g.setIndex([0,1,2,2,1,3]);
+  const m=new THREE.Mesh(g,routeMat); m.renderOrder=5; routeG.add(m);
+  const m2=new THREE.Mesh(g,chevMat); m2.renderOrder=6; routeG.add(m2);
+}
+let ROUTE=null, endPin=null;
+function drawRoute(){
+  while(routeG.children.length) routeG.remove(routeG.children[0]);
+  if(!ROUTE) return;
+  const z=(f,x,y)=>LV[f]+zAt(f,x,y)+0.04;
+  ROUTE.legs.forEach(L=>{
+    if(L.pts) for(let i=1;i<L.pts.length;i++){ const [x1,y1]=L.pts[i-1],[x2,y2]=L.pts[i]; ribbon([x1,y1,z(L.f,x1,y1)],[x2,y2,z(L.f,x2,y2)],0.32); }
+    if(L.elev){ const [a,b]=L.elev, lo=Math.min(LV[a],LV[b]), hi=Math.max(LV[a],LV[b]);
+      const c=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,hi-lo+1.2,20,1,true),new THREE.MeshBasicMaterial({color:0xd9822b,transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide}));
+      c.position.set(CAB[0],(lo+hi)/2+0.6,-CAB[1]); routeG.add(c); }
+    if(L.stair!==undefined){ const k=L.stair; ribbon([8.8,8.0,LV[k]+0.04],[8.8,S.y1,LV[k]+0.24],0.32); ribbon([8.8,S.y1,LV[k]+0.24],[8.8,S.y2,LV[k+1]+0.24],0.32); ribbon([8.8,S.y2,LV[k+1]+0.24],[8.8,11.95,LV[k+1]+0.04],0.32); }
+  });
+  const last=ROUTE.legs[ROUTE.legs.length-1], [ex,ey]=last.pts[last.pts.length-1], ez=z(last.f,ex,ey);
+  endPin=new THREE.Group();
+  const pin=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.45,20),new THREE.MeshBasicMaterial({color:0xd9822b})); pin.rotation.x=PI; pin.position.y=1.05; endPin.add(pin);
+  const ball=new THREE.Mesh(new THREE.SphereGeometry(0.2,20,14),new THREE.MeshBasicMaterial({color:0xd9822b})); ball.position.y=1.35; endPin.add(ball);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(0.35,0.5,32),new THREE.MeshBasicMaterial({color:0xd9822b,transparent:true,opacity:.6,side:THREE.DoubleSide,depthWrite:false})); ring.rotation.x=-PI/2; ring.position.y=0.02; endPin.add(ring);
+  endPin.position.set(ex,ez,-ey); routeG.add(endPin);
+}
+
+/* ---------- follow the route (따라 걷기) ---------- */
+let AUTO=null;
+function startAuto(){ if(!ROUTE) return; setMode('walk'); placeAtStart(); AUTO={li:0,pi:1,wait:0,look:0}; $('#rFollow').textContent='멈추기'; }
+function stopAuto(){ AUTO=null; $('#rFollow').textContent='따라 걷기'; }
+function placeAtStart(){ const L=ROUTE.legs[0]; P.f=L.f; P.stair=null; P.x=L.pts[0][0]; P.y=L.pts[0][1];
+  const [nx,ny]=L.pts[1]; P.yaw=Math.atan2(-(nx-P.x),ny-P.y); P.pitch=-0.08; camZ=footZ()+EYE; }
+function stepAuto(dt){
+  const L=ROUTE.legs[AUTO.li]; if(!L){ stopAuto(); return; }
+  const next=()=>{ AUTO.li++; AUTO.pi=1; AUTO.wait=0; };
+  if(L.elev){ AUTO.wait+=dt; $('#where').textContent=`엘리베이터 · ${FNAME[L.elev[0]]} → ${FNAME[L.elev[1]]}`;
+    if(AUTO.wait>1.4){ P.f=L.elev[1]; P.x=CAB[0]; P.y=CAB[1]; P.yaw=PI/2; next(); } return; }
+  if(L.stair!==undefined){ P.x=8.8; const target=11.95; if(P.y<S.y1) P.y=Math.max(P.y,8.0);
+    P.y+=1.1*dt; P.yaw+=(0-P.yaw)*Math.min(1,dt*4);
+    if(P.y>S.y1&&P.y<S.y2) P.stair=L.stair; else if(P.y>=S.y2){ P.stair=null; P.f=L.stair+1; }
+    if(P.y>=target){ P.y=target; next(); } return; }
+  P.f=L.f; P.stair=null;
+  const [tx,ty]=L.pts[AUTO.pi], dx=tx-P.x, dy=ty-P.y, d=Math.hypot(dx,dy), sp=1.7*dt;
+  if(d>0.01){ const want=Math.atan2(-dx,dy); let da=want-P.yaw; da=Math.atan2(Math.sin(da),Math.cos(da));
+    if(AUTO.look>0) AUTO.look-=dt; else { P.yaw+=da*Math.min(1,dt*5); P.pitch+=(-0.06-P.pitch)*Math.min(1,dt*3); } }
+  if(d<=sp){ P.x=tx; P.y=ty; AUTO.pi++; if(AUTO.pi>=L.pts.length){ next(); if(AUTO.li>=ROUTE.legs.length){ P.yaw=ROUTE.dest.yaw; stopAuto(); } } }
+  else { P.x+=dx/d*sp; P.y+=dy/d*sp; }
+}
 
 /* ---------- visibility ---------- */
 let visKey='';
@@ -1262,15 +1433,36 @@ function applyVisibility(){
     FLOORS.forEach((F,i)=>{ F.shell.visible = cut<0 ? true : i<=cut; F.interior.visible = i===cut; F.ceil.visible=false; });
     key='t'+cut;
   }
-  if(key!==visKey){ visKey=key; renderer.shadowMap.needsUpdate=true; updateMarkers(); }
+  if(key!==visKey){ visKey=key; renderer.shadowMap.needsUpdate=true; MARKERS.forEach(g=>g.visible=false); }
 }
-const show={light:true,switch:true,outlet:true};
-function updateMarkers(){ MARKERS.forEach(g=>g.children.forEach(s=>{ s.material.depthTest = mode==='walk'; s.visible=!!show[s.userData.kind]; })); }
 
 /* ---------- UI ---------- */
-const floorsEl=$('#floors'), roomsEl=$('#rooms');
+const floorsEl=$('#floors'), roomsEl=$('#rooms'), homesEl=$('#homes'), destsEl=$('#dests');
+let HOME=HOMES[HOMES.length-1];
 const FBTN=['전체','1층·외부','2층','3층','4층','옥상'].map((t,i)=>{ const b=document.createElement('button'); b.textContent=t; b.dataset.f=i-1;
   b.addEventListener('click',()=>pickFloor(i-1)); floorsEl.appendChild(b); return b; });
+const HBTN=HOMES.map(Hh=>{ const b=document.createElement('button'); b.textContent=Hh.label||Hh.id+'호'; if(Hh.id==='visitor') b.className='wide';
+  b.addEventListener('click',()=>pickHome(Hh)); homesEl.appendChild(b); return b; });
+const DBTN=DESTS.map(D=>{ const b=document.createElement('button'); b.innerHTML=`${D.name}<small>${D.fl}</small>`;
+  b.addEventListener('click',()=>pickDest(D)); destsEl.appendChild(b); return b; });
+function pickHome(Hh){ HOME=Hh; stopAuto(); setMode('walk'); P.f=Hh.f; P.stair=null; P.x=Hh.path[0][0]; P.y=Hh.path[0][1];
+  const [nx,ny]=Hh.path[1]; P.yaw=Math.atan2(-(nx-P.x),ny-P.y); P.pitch=-0.32;
+  if(ROUTE) setRoute(ROUTE.dest); refreshUI(); }
+function pickDest(D){ setRoute(D); refreshUI(); }
+function setRoute(D){
+  ROUTE=buildRoute(HOME,D); drawRoute(); stopAuto();
+  const from=HOME.id==='visitor'?'대지 앞 도로':`${HOME.id}호 (${FNAME[HOME.f]})`;
+  const tf=D.f===4?3:D.f;
+  const via = tf!==HOME.f ? ` → 엘리베이터 ${FNAME[HOME.f]}→${FNAME[tf]}` : '';
+  const st = D.f===4 ? ' → 계단으로 옥상' : '';
+  const sec=Math.round(ROUTE.len/1.2+(tf!==HOME.f?25:0));
+  $('#routeText').innerHTML=`<b>${from}</b>${via}${st} → <b>${D.name}</b><br>걷는 거리 약 ${Math.round(ROUTE.len)} m · 약 ${sec<60?sec+'초':Math.round(sec/60)+'분'}`;
+  $('#route').hidden=false;
+}
+$('#rFollow').onclick=()=>{ if(AUTO) stopAuto(); else startAuto(); };
+$('#rJump').onclick=()=>{ if(!ROUTE) return; stopAuto(); setMode('walk'); const L=ROUTE.legs[ROUTE.legs.length-1], p=L.pts[L.pts.length-1];
+  P.f=L.f; P.stair=null; P.x=p[0]; P.y=p[1]; P.yaw=ROUTE.dest.yaw; P.pitch=-0.06; refreshUI(); };
+$('#rClear').onclick=()=>{ ROUTE=null; stopAuto(); drawRoute(); $('#route').hidden=true; refreshUI(); };
 function viewFloor(){ return mode==='walk'?(P.stair!==null?P.stair:P.f):cut; }
 function spawnFloor(f){
   if(f===0){ P.x=9.4; P.y=-7.0; P.yaw=0; }
@@ -1279,63 +1471,47 @@ function spawnFloor(f){
   P.f=f; P.stair=null; P.pitch=-0.05;
 }
 function pickFloor(f){
+  stopAuto();
   if(mode==='walk'){ if(f<0) return; spawnFloor(f); }
   else { cut=f; orbit.tz = f<0?5:LV[f]+1; }
   refreshUI();
 }
-function goTo(R){ setMode('walk'); P.f=R.f; P.stair=null; P.x=R.spawn[0]; P.y=R.spawn[1]; P.yaw=R.spawn[2]; P.pitch=-0.08; refreshUI(); }
+function goTo(R){ stopAuto(); setMode('walk'); P.f=R.f; P.stair=null; P.x=R.spawn[0]; P.y=R.spawn[1]; P.yaw=R.spawn[2]; P.pitch=-0.08; refreshUI(); }
 function refreshUI(){
   const vf=viewFloor();
   FBTN.forEach(b=>{ const f=+b.dataset.f; b.hidden = mode==='walk'&&f<0; b.setAttribute('aria-pressed', f===vf); });
+  HBTN.forEach((b,i)=>b.setAttribute('aria-pressed',HOMES[i]===HOME));
+  DBTN.forEach((b,i)=>b.setAttribute('aria-pressed',!!ROUTE&&ROUTE.dest===DESTS[i]));
   roomsEl.innerHTML='';
-  const mine=ROOMS.find(R=>R.unit==='403호'&&R.name==='거실');
-  const chip=(label,R,cls)=>{ const b=document.createElement('button'); b.textContent=label; if(cls) b.className=cls; b.onclick=()=>goTo(R); roomsEl.appendChild(b); return b; };
-  chip('우리집 403호',mine,'mine');
   const f=vf<0?null:vf;
-  $('#placesLbl').textContent = f===null?'층을 고르면 공간 목록이 나와요':`${FNAME[f]} 공간`;
-  if(f!==null){
-    const seen=new Set();
-    ROOMS.filter(R=>R.f===f&&R.spawn).forEach(R=>{
-      const isUnit=/호$/.test(R.unit);
-      if(isUnit){ if(seen.has(R.unit)) return; seen.add(R.unit); const e=ROOMS.find(Q=>Q.f===f&&Q.unit===R.unit&&Q.name==='현관')||R; chip(R.unit,e,R.mine?'mine':''); }
-      else { const k=R.name; if(seen.has(k)) return; seen.add(k); chip(k,R); }
-    });
-  }
+  $('#placesLbl').textContent = f===null?'층을 고르면 공간 목록이 나와요':`${FNAME[f]} 공간 바로 가기`;
+  const chip=(label,R)=>{ const b=document.createElement('button'); b.textContent=label; b.onclick=()=>goTo(R); roomsEl.appendChild(b); };
+  if(f!==null){ const seen=new Set();
+    ROOMS.filter(R=>R.f===f&&R.spawn).forEach(R=>{ const isUnit=/호$/.test(R.unit), k=isUnit?R.unit:R.name; if(seen.has(k)) return; seen.add(k);
+      chip(k, isUnit?(ROOMS.find(Q=>Q.f===f&&Q.unit===R.unit&&Q.name==='현관')||R):R); }); }
   $('#mapFloor').textContent=FNAME[Math.max(0,vf)];
 }
-$('#hint').innerHTML = isTouch
-  ? '왼쪽 아래 스틱으로 이동하고 화면을 끌어서 둘러보세요. 계단은 걸어서 오르내릴 수 있고, 층 버튼은 엘리베이터처럼 이동해요.'
-  : '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>·방향키 이동, <kbd>Shift</kbd> 빠르게, 화면을 끌어서 둘러보기. 계단은 걸어서 오르내리고, 층 버튼은 엘리베이터처럼 이동해요.';
+$('#hint').innerHTML = (isTouch
+  ? '왼쪽 아래 스틱으로 이동하고 화면을 끌어서 둘러보세요.'
+  : '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>·방향키 이동, <kbd>Shift</kbd> 빠르게, 화면을 끌어서 둘러보기.')
+  + ' 우리 집을 고르고 가고 싶은 곳을 누르면 길을 안내해요. 계단은 걸어서, 층 버튼은 엘리베이터처럼 이동해요.';
 function setMode(m){ mode=m; $('#mWalk').setAttribute('aria-pressed',m==='walk'); $('#mTop').setAttribute('aria-pressed',m==='top');
   joy.hidden=!(isTouch&&m==='walk'); $('#where').hidden=m!=='walk'; labelsEl.hidden=m!=='top';
-  camera.fov=m==='walk'?72:42; camera.updateProjectionMatrix(); lamp.visible=m==='walk'&&lampsOn; updateMarkers(); refreshUI(); }
-let lampsOn=true;
-$('#mWalk').onclick=()=>setMode('walk'); $('#mTop').onclick=()=>setMode('top');
-[['sLight','light'],['sSwitch','switch'],['sOutlet','outlet']].forEach(([id,k])=>{ $('#'+id).onchange=e=>{ show[k]=e.target.checked; updateMarkers(); }; });
-$('#nLight').textContent=ELEC.light.length; $('#nSwitch').textContent=ELEC.switch.length; $('#nOutlet').textContent=ELEC.outlet.length;
-$('#lampsOn').onchange=e=>{ lampsOn=e.target.checked; LAMPS.forEach(g=>g.visible=lampsOn); lamp.visible=lampsOn&&mode==='walk';
-  M.glowW.color.set(lampsOn?0xfff1d6:0xd8d4cc); M.glowC.color.set(lampsOn?0xffffff:0xdcdcdc); };
+  if(m==='top'&&ROUTE){ const tf=ROUTE.dest.f; cut=tf===4?-1:tf; orbit.tz=cut<0?5:LV[cut]+1; }
+  routeMat.depthTest=chevMat.depthTest=m==='walk';
+  camera.fov=m==='walk'?72:42; camera.updateProjectionMatrix(); lamp.visible=m==='walk'; refreshUI(); }
+$('#mWalk').onclick=()=>setMode('walk'); $('#mTop').onclick=()=>{ stopAuto(); setMode('top'); };
 $('#fold').onclick=()=>{ const c=$('#card'); c.classList.toggle('min'); $('#fold').textContent=c.classList.contains('min')?'펼치기':'접기'; };
 if(innerWidth<560){ $('#card').classList.add('min'); $('#fold').textContent='펼치기'; }
-const ray=new THREE.Raycaster(), tip=$('#tip'); let down=null;
-stage.addEventListener('pointerdown',e=>{ down={x:e.clientX,y:e.clientY}; tip.hidden=true; });
-stage.addEventListener('pointerup',e=>{ if(!down||Math.hypot(e.clientX-down.x,e.clientY-down.y)>6) return;
-  ray.setFromCamera({x:e.clientX/innerWidth*2-1,y:-(e.clientY/innerHeight)*2+1},camera);
-  const sprites=[]; MARKERS.forEach(g=>{ if(g.parent&&g.parent.parent&&g.parent.parent.visible) g.children.forEach(s=>{ if(s.visible) sprites.push(s); }); });
-  const hit=ray.intersectObjects(sprites)[0];
-  if(hit){ tip.textContent=hit.object.userData.label; tip.style.left=e.clientX+'px'; tip.style.top=e.clientY+'px'; tip.hidden=false; } });
 
 // overview labels: one per unit / shared space on the cut floor
 const labelsEl=$('#labels');
 const LABELS=[];
 (function(){ const groups=new Map();
-  ROOMS.forEach(R=>{ if(R.name==='대지'||R.name==='대지 앞 도로') return; const key=R.f+'|'+(/호$/.test(R.unit)?R.unit:R.name);
-    const g=groups.get(key)||{f:R.f,text:/호$/.test(R.unit)?R.unit:R.name,x1:1e9,y1:1e9,x2:-1e9,y2:-1e9,mine:R.mine};
+  ROOMS.forEach(R=>{ if(R.name==='대지'||R.name==='대지 앞 도로'||R.name==='데크 계단'||R.name==='엘리베이터') return; const key=R.f+'|'+(/호$/.test(R.unit)?R.unit:R.name);
+    const g=groups.get(key)||{f:R.f,text:/호$/.test(R.unit)?R.unit:R.name,x1:1e9,y1:1e9,x2:-1e9,y2:-1e9};
     g.x1=Math.min(g.x1,R.r[0]); g.y1=Math.min(g.y1,R.r[1]); g.x2=Math.max(g.x2,R.r[2]); g.y2=Math.max(g.y2,R.r[3]); groups.set(key,g); });
-  groups.forEach(g=>{ const d=document.createElement('div'); d.textContent=g.text; if(g.mine) d.className='mine'; labelsEl.appendChild(d);
-    LABELS.push({...g,el:d}); });
-  const d=document.createElement('div'); d.textContent='우리집 403호'; d.className='mine'; labelsEl.appendChild(d);
-  LABELS.push({f:-1,text:'우리집',x1:14.1,y1:-0.5,x2:14.1,y2:-0.5,el:d,z:LV[3]+2.4});
+  groups.forEach(g=>{ const d=document.createElement('div'); d.textContent=g.text; labelsEl.appendChild(d); LABELS.push({...g,el:d}); });
 })();
 
 // minimap
@@ -1350,11 +1526,18 @@ function drawMap(){
   const room=css('--map-room'), wet=css('--map-wet'), wallc=css('--map-wall'), acc=css('--accent'), fg=css('--fg'), out=css('--map-out');
   ROOMS.filter(R=>R.f===f).sort((a,b)=>(b.r[2]-b.r[0])*(b.r[3]-b.r[1])-(a.r[2]-a.r[0])*(a.r[3]-a.r[1])).forEach(R=>{
     const [a,b]=T.to(R.r[0],R.r[3]), [c,d]=T.to(R.r[2],R.r[1]); g2.fillStyle=R.name.startsWith('대지')?out:(R.wet?wet:room); g2.fillRect(a,b,c-a,d-b); });
+  // highlight the chosen home
+  if(HOME.id!=='visitor'&&HOME.f===f){ g2.fillStyle=acc; g2.globalAlpha=.16; ROOMS.filter(R=>R.f===f&&R.unit===HOME.id+'호').forEach(R=>{ const [a,b]=T.to(R.r[0],R.r[3]), [c,d]=T.to(R.r[2],R.r[1]); g2.fillRect(a,b,c-a,d-b); }); g2.globalAlpha=1; }
   g2.fillStyle=wallc; FLOORS[f].walls.forEach(([x1,x2,y1,y2])=>{ const [a,b]=T.to(x1,y2), [c,d]=T.to(x2,y1); g2.fillRect(a,b,Math.max(1.5,c-a),Math.max(1.5,d-b)); });
-  if(f>=1&&f<=3){ g2.strokeStyle=acc; g2.lineWidth=2; const [a,b]=T.to(9.4,7.9), [c,d]=T.to(18.8,0); g2.strokeRect(a,b,c-a,d-b); }
   g2.font='500 '+(f===0?13:14)+'px '+css('--sans'); g2.textAlign='center'; g2.textBaseline='middle'; g2.fillStyle=fg; g2.globalAlpha=.75;
   LABELS.filter(L=>L.f===f).forEach(L=>{ const [x,y]=T.to((L.x1+L.x2)/2,(L.y1+L.y2)/2); g2.fillText(L.text,x,y); });
   g2.globalAlpha=1;
+  if(ROUTE){ g2.strokeStyle='#d9822b'; g2.lineWidth=5; g2.lineJoin='round'; g2.lineCap='round';
+    ROUTE.legs.forEach(L=>{ let pts=null;
+      if(L.pts&&L.f===f) pts=L.pts; if(L.stair!==undefined&&(f===L.stair||f===L.stair+1)) pts=[[8.8,8.0],[8.8,11.95]];
+      if(pts){ g2.beginPath(); pts.forEach(([x,y],i)=>{ const [a,b]=T.to(x,y); i?g2.lineTo(a,b):g2.moveTo(a,b); }); g2.stroke(); }
+      if(L.elev&&(L.elev[0]===f||L.elev[1]===f)){ const [a,b]=T.to(CAB[0],CAB[1]); g2.beginPath(); g2.arc(a,b,9,0,7); g2.stroke(); } });
+    const last=ROUTE.legs[ROUTE.legs.length-1]; if(last.f===f){ const [a,b]=T.to(...last.pts[last.pts.length-1]); g2.fillStyle='#d9822b'; g2.beginPath(); g2.arc(a,b,9,0,7); g2.fill(); } }
   if(mode==='walk'&&Math.max(0,viewFloor())===f){
     const [px,py]=T.to(P.x,P.y); const fx=-Math.sin(P.yaw), fy=Math.cos(P.yaw);
     g2.fillStyle=acc; g2.globalAlpha=.28; g2.beginPath(); g2.moveTo(px,py); const a0=Math.atan2(-fy,fx); g2.arc(px,py,40,a0-0.6,a0+0.6); g2.closePath(); g2.fill(); g2.globalAlpha=1;
@@ -1365,7 +1548,7 @@ $('#map').addEventListener('click',e=>{
   const f=Math.max(0,viewFloor()), T=mapXf(f), r=mc.getBoundingClientRect();
   const [x,y]=T.from((e.clientX-r.left)/r.width*mc.width,(e.clientY-r.top)/r.height*mc.height);
   const R=roomAt(f,x,y); if(!R&&f!==0) return;
-  setMode('walk'); P.f=f; P.stair=null;
+  stopAuto(); setMode('walk'); P.f=f; P.stair=null;
   if(!blocked(f,x,y)&&!(x>S.x1&&x<S.x2&&y>S.y1&&y<S.y2)){ P.x=x; P.y=y; } else if(R&&R.spawn){ P.x=R.spawn[0]; P.y=R.spawn[1]; }
   refreshUI();
 });
@@ -1379,16 +1562,21 @@ let last=performance.now(), lastWhere='', mapTick=0, camZ=footZ()+EYE, lastF=-9;
 const v3=new THREE.Vector3();
 function frame(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now;
+  chevTex.offset.x=(chevTex.offset.x-dt*1.2)%1;
+  if(endPin){ endPin.children[0].position.y=1.05+Math.sin(now/300)*0.08; endPin.children[1].position.y=1.35+Math.sin(now/300)*0.08; const s=1+((now/900)%1)*0.6; endPin.children[2].scale.set(s,s,s); }
   if(mode==='walk'){
-    let f=0,s=0;
-    if(keys.KeyW||keys.ArrowUp) f+=1; if(keys.KeyS||keys.ArrowDown) f-=1;
-    if(keys.KeyD) s+=1; if(keys.KeyA) s-=1;
-    if(keys.ArrowLeft) P.yaw+=1.8*dt; if(keys.ArrowRight) P.yaw-=1.8*dt;
-    f-=J.y; s+=J.x;
-    const m=Math.hypot(f,s); if(m>1){f/=m;s/=m;}
-    const sp=(keys.ShiftLeft||keys.ShiftRight?3.2:1.5)*dt;
-    if(m>0.01){ const dx=(f*-Math.sin(P.yaw)+s*Math.cos(P.yaw))*sp, dy=(f*Math.cos(P.yaw)+s*Math.sin(P.yaw))*sp; tryStep(P.x+dx,P.y); tryStep(P.x,P.y+dy); }
-    const tz=footZ()+EYE; camZ += (tz-camZ)*Math.min(1,dt*(P.stair!==null?20:10));
+    if(AUTO) stepAuto(dt);
+    else {
+      let f=0,s=0;
+      if(keys.KeyW||keys.ArrowUp) f+=1; if(keys.KeyS||keys.ArrowDown) f-=1;
+      if(keys.KeyD) s+=1; if(keys.KeyA) s-=1;
+      if(keys.ArrowLeft) P.yaw+=1.8*dt; if(keys.ArrowRight) P.yaw-=1.8*dt;
+      f-=J.y; s+=J.x;
+      const m=Math.hypot(f,s); if(m>1){f/=m;s/=m;}
+      const sp=(keys.ShiftLeft||keys.ShiftRight?3.2:1.5)*dt;
+      if(m>0.01){ const dx=(f*-Math.sin(P.yaw)+s*Math.cos(P.yaw))*sp, dy=(f*Math.cos(P.yaw)+s*Math.sin(P.yaw))*sp; tryStep(P.x+dx,P.y); tryStep(P.x,P.y+dy); }
+    }
+    const tz=footZ()+EYE; camZ += (tz-camZ)*Math.min(1,dt*(P.stair!==null||AUTO?14:10));
     camera.position.set(P.x,camZ,-P.y); camera.rotation.set(P.pitch,P.yaw,0);
     lamp.position.set(P.x,camZ+0.5,-P.y);
     lamp.intensity = (P.f===0&&zAt(0,P.x,P.y)===GL)||P.f===4&&P.stair===null ? 0 : 0.6;
@@ -1397,12 +1585,12 @@ function frame(now){
     const st=Math.sin(orbit.phi);
     camera.position.set(orbit.tx+orbit.r*st*Math.sin(orbit.theta),orbit.tz+orbit.r*Math.cos(orbit.phi),-orbit.ty+orbit.r*st*Math.cos(orbit.theta));
     camera.lookAt(orbit.tx,orbit.tz,-orbit.ty);
-    LABELS.forEach(L=>{ const on = cut<0 ? L.f===-1 : L.f===cut; L.el.hidden=!on; if(!on) return;
-      v3.set((L.x1+L.x2)/2, L.z!==undefined?L.z:LV[L.f]+1.0, -(L.y1+L.y2)/2).project(camera);
+    LABELS.forEach(L=>{ const on = L.f===cut; L.el.hidden=!on; if(!on) return;
+      v3.set((L.x1+L.x2)/2, LV[L.f]+1.0, -(L.y1+L.y2)/2).project(camera);
       L.el.style.left=((v3.x+1)/2*innerWidth)+'px'; L.el.style.top=((1-v3.y)/2*innerHeight)+'px'; });
   }
   applyVisibility();
-  if(mode==='walk'){ const R=roomAt(P.stair!==null?P.stair:P.f,P.x,P.y);
+  if(mode==='walk'&&!(AUTO&&ROUTE.legs[AUTO.li]&&ROUTE.legs[AUTO.li].elev)){ const R=roomAt(P.stair!==null?P.stair:P.f,P.x,P.y);
     const w = R&&R.name==='엘리베이터' ? `${FNAME[P.f]} · 엘리베이터 (층 버튼으로 이동)` : P.stair!==null ? `계단 (${FNAME[P.stair]} ↔ ${FNAME[P.stair+1]})` : R ? (/호$/.test(R.unit)?`${FNAME[P.f]} ${R.unit} · ${R.name}`:`${FNAME[P.f]} · ${R.name}`) : `${FNAME[P.f]}`;
     if(w!==lastWhere){ lastWhere=w; $('#where').textContent=w; } }
   if(++mapTick%3===0) drawMap();
@@ -1410,7 +1598,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-if(window.__TEST__) window.__tour={P,tryStep,footZ,FLOORS};
+if(window.__TEST__) window.__tour={P,tryStep,footZ,FLOORS,buildRoute,HOMES,DESTS};
 })();
 </script>
 
