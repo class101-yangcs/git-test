@@ -213,7 +213,7 @@ body.touring #where,body.touring #joy,body.editing #joy{display:none!important}
   <div id="dests" role="group" aria-label="목적지"></div>
   <div class="route" id="route" hidden>
     <p id="routeText"></p>
-    <div class="rbtns"><button id="rClear">경로 지우기</button></div>
+    <div class="rbtns"><button id="rShow" class="primary">가는 길 보기</button></div>
   </div>
   <div class="lbl">층별로 보기</div>
   <div class="floors" id="floors" role="group" aria-label="층 선택"></div>
@@ -1807,7 +1807,7 @@ function viewpoint(B,from){ // walk to the corner that sees the most of the room
 }
 const tourCap=$('#tourCap');
 function showCap(step,title,text){ tourCap.hidden=false; $('#tcStep').textContent=step; $('#tcTitle').textContent=title; $('#tcText').textContent=text; }
-function startTour(){
+function startTour(){ PICK=null; $('#route').hidden=true;
   stopAuto(true); setEdit(false); const stops=tourStops();
   TOUR={stops,i:0,phase:'intro',t:0,paused:false};
   ROUTE=null; drawRoute(); $('#route').hidden=true;
@@ -1832,7 +1832,7 @@ function nextStop(){ const T=TOUR; if(!T) return;
 function pauseTour(){ if(!TOUR) return; TOUR.paused=true; $('#tcPause').textContent='계속'; }
 function resumeTour(){ const T=TOUR; if(!T) return; T.paused=false; $('#tcPause').textContent='일시정지'; if(T.phase!=='intro'&&mode!=='walk') setMode('walk');
   if(T.phase==='move'&&!AUTO){ placeAtStart(); AUTO={li:0,pi:1,wait:0,look:0,tour:true}; } }
-function endTour(done){ stopAuto(true); TOUR=null; ROUTE=null; drawRoute(); focusAt(-1,9.4,9.85,44); $('#tourBtn').setAttribute('aria-pressed','false'); $('#tourBtn').textContent='▶ 자동 투어'; document.body.classList.remove('touring'); if($('#card').hidden&&NARROW.matches){ setTiny(false); setFold(true); }
+function endTour(done){ stopAuto(true); TOUR=null; ROUTE=null; PICK=null; $('#route').hidden=true; drawRoute(); focusAt(-1,9.4,9.85,44); $('#tourBtn').setAttribute('aria-pressed','false'); $('#tourBtn').textContent='▶ 자동 투어'; document.body.classList.remove('touring'); if($('#card').hidden&&NARROW.matches){ setTiny(false); setFold(true); }
   if(done){ showCap('투어 끝','둘러봐 주셔서 고마워요','이제 자유롭게 걸어 다니거나, 우리 집을 고르고 가고 싶은 곳을 눌러 길을 찾아보세요.'); setTimeout(()=>{ if(!TOUR) tourCap.hidden=true; },6000); }
   else tourCap.hidden=true; refreshUI(); }
 function tourTick(dt){ const T=TOUR; if(!T||T.paused) return; T.t+=dt;
@@ -1880,7 +1880,12 @@ function pickHome(Hh){ HOME=Hh; stopAuto(); P.f=Hh.f; P.stair=null; P.x=Hh.path[
   const [nx,ny]=Hh.path[1]; P.yaw=Math.atan2(-(nx-P.x),ny-P.y); P.pitch=-0.32;
   if(Hh.id!=='visitor') focusAt(Hh.f,Hh.path[0][0],Hh.path[0][1],18); else focusAt(-1,9.4,9.85,46);
   if(ROUTE) setRoute(ROUTE.dest); refreshUI(); if(NARROW.matches&&ROUTE) setFold(true); }
-function pickDest(D){ if(ROUTE&&ROUTE.dest===D){ $('#rClear').click(); return; } setRoute(D); const p=D.pts[D.pts.length-1]; focusAt(D.f,p[0],p[1],D.f===4?24:18); if(NARROW.matches) setFold(true); }
+let PICK=null;   // 고른 장소 — 경로는 '가는 길 보기'를 눌러야 그린다
+function pickDest(D){ ROUTE=null; stopAuto(); drawRoute();
+  if(PICK===D){ PICK=null; $('#route').hidden=true; refreshUI(); return; }
+  PICK=D; const p=D.pts[D.pts.length-1]; focusAt(D.f,p[0],p[1],D.f===4?24:18);
+  $('#routeText').innerHTML=`<b>${D.name}</b> · ${D.fl}`; $('#rShow').textContent='가는 길 보기'; $('#route').hidden=false; refreshUI();
+  if(NARROW.matches) setFold(true); }
 function setRoute(D){
   ROUTE=buildRoute(HOME,D); drawRoute(); stopAuto();
   const from='건물 앞 도로';
@@ -1891,7 +1896,10 @@ function setRoute(D){
   $('#routeText').innerHTML=`<b>${from}</b>${via}${st} → <b>${D.name}</b><br>걷는 거리 약 ${Math.round(ROUTE.len)} m · 약 ${sec<60?sec+'초':Math.round(sec/60)+'분'}`;
   $('#route').hidden=false;
 }
-$('#rClear').onclick=()=>{ ROUTE=null; stopAuto(); drawRoute(); $('#route').hidden=true; refreshUI(); };
+$('#rShow').onclick=()=>{ if(!PICK) return; stopAuto();
+  if(ROUTE){ ROUTE=null; drawRoute(); $('#routeText').innerHTML=`<b>${PICK.name}</b> · ${PICK.fl}`; $('#rShow').textContent='가는 길 보기'; }
+  else { setRoute(PICK); $('#rShow').textContent='경로 숨기기'; }
+  refreshUI(); };
 function viewFloor(){ return mode==='walk'?(P.stair!==null?P.stair:P.f):cut; }
 function spawnFloor(f){
   if(f===0){ P.x=9.4; P.y=-7.0; P.yaw=0; }
@@ -1908,7 +1916,7 @@ function goTo(R){ stopAuto(); focusAt(R.f,(R.r[0]+R.r[2])/2,(R.r[1]+R.r[3])/2,16
 function refreshUI(){
   const vf=viewFloor();
   FBTN.forEach(b=>{ const f=+b.dataset.f; b.hidden = mode==='walk'&&f<0; b.setAttribute('aria-pressed', f===vf); });
-  DBTN.forEach((b,i)=>b.setAttribute('aria-pressed',!!ROUTE&&ROUTE.dest===DESTS[i]));
+  DBTN.forEach((b,i)=>b.setAttribute('aria-pressed',PICK===DESTS[i]));
   $('#mapFloor').textContent=FNAME[Math.max(0,vf)];
 }
 function setMode(m){ mode=m;
