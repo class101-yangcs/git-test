@@ -147,6 +147,7 @@ body.editing .editbtn{display:none}
 #labels div{position:absolute;transform:translate(-50%,-50%);background:var(--panel);color:var(--fg);border:1px solid var(--line);
   border-radius:6px;padding:2px 7px;font-size:12px;font-weight:500;white-space:nowrap}
 #labels div.mine{border-color:var(--accent);font-weight:700}
+#labels div.sub{font-size:10.5px;padding:1px 6px;opacity:.85;background:rgba(255,255,255,.75);color:#4a4036;border-color:transparent}
 #joy{position:fixed;left:calc(max(24px,env(safe-area-inset-left,0px) + 8px));bottom:calc(28px + env(safe-area-inset-bottom,0px));
   width:120px;height:120px;border-radius:50%;background:var(--panel);border:1px solid var(--line);z-index:6;touch-action:none}
 #joy i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:var(--accent);opacity:.85}
@@ -780,15 +781,15 @@ item('식탁 의자',()=>{
 // 주방: ㄱ자 하부장 + 상판, 인덕션, 하츠 침니후드, 싱크볼, 냉장고장, 세탁기장(루버도어)
 item('주방 조리대',()=>{
 box(4.11,7.3,0,6.38,7.9,0.15,M.dark,true);
-box(4.11,7.33,0.15,6.38,7.9,0.87,M.film);
+box(4.11,7.33,0.15,6.38,7.9,0.87,M.kCab);
 box(5.78,5.8,0,6.38,7.3,0.15,M.dark,true);
-box(5.81,5.8,0.15,6.38,7.3,0.87,M.film);
-box(4.09,7.28,0.87,6.38,7.9,0.9,M.marble); box(5.76,5.78,0.87,6.38,7.3,0.9,M.marble);
+box(5.81,5.8,0.15,6.38,7.3,0.87,M.kCab);
+box(4.09,7.28,0.87,6.38,7.9,0.9,M.kTop); box(5.76,5.78,0.87,6.38,7.3,0.9,M.kTop);
 box(4.36,7.38,0.9,4.94,7.86,0.905,M.black);
 box(5.82,6.2,0.88,6.28,6.95,0.905,M.steel);
 box(6.2,6.52,0.9,6.24,6.58,1.25,M.steel); box(6.06,6.52,1.22,6.24,6.58,1.25,M.steel);
 box(4.18,7.5,1.55,5.12,7.9,1.6,M.steel); box(4.53,7.65,1.6,4.77,7.9,2.3,M.steel);
-box(6.03,5.8,1.5,6.38,7.9,2.3,M.film); box(4.11,7.55,1.5,4.36,7.9,2.3,M.film);
+box(6.03,5.8,1.5,6.38,7.9,2.3,M.kUp); box(4.11,7.55,1.5,4.36,7.9,2.3,M.kUp);
 const strip=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.01,2.0),M.glowW); strip.position.set(6.0,1.49,-6.85); put(strip);
 box(4.11,7.9,2.1,4.15,7.95,2.15,M.black);
 });
@@ -969,6 +970,10 @@ plate('outlet',3.04,4.88,1.8,'W',1,'벽부형 팬 전원 콘센트 · 안방 욕
  [2.9,7.65,1.2,'W','욕실(방수형)'],[3.04,4.6,1.1,'W','안방 욕실(방수형)']]
  .forEach(([x,y,z,f,where])=>plate('outlet',x,y,z,f,2,`콘센트 2구 · ${where} · H${Math.round(z*1000).toLocaleString()} · 추정 위치`,true));
 }
+/* 세대 주방 마감: 하부장 우드, 상판 짙은 회색, 상부장 연한 우드 — 위에서 봐도 주방이 바로 보이게 */
+M.kCab=new THREE.MeshStandardMaterial({color:0x7a5230,roughness:.6});
+M.kTop=new THREE.MeshStandardMaterial({color:0x26282b,roughness:.35});
+M.kUp=new THREE.MeshStandardMaterial({color:0xb48c5c,roughness:.6});
 
 /* ---------- 북측 세대 (301·401 기준, 302·402는 좌우 대칭) — 3·4층 평면도 ---------- */
 function northUnit(){
@@ -1001,10 +1006,10 @@ function northUnit(){
   ceiling(3.72,14.67,5.97,16.47,2.25,M.smc); ceiling(7.42,14.67,9.34,16.36,2.25,M.smc);
   [[1.9,13.5],[1.9,15.6],[1.6,18.0],[5.0,18.0],[7.9,18.0],[5.2,12.3],[8.6,13.4],[5.6,14.1],[4.8,15.6],[8.4,15.5]].forEach(([x,y])=>downl(x,y,2.3));
   // kitchen ㄱ자 + fridge, dining, living
-  item('주방 가구',()=>{ box(0.2,18.9,0,3.0,19.5,0.87,M.film,true); box(0.2,18.88,0.87,3.0,19.5,0.9,M.marble);
-  box(0.2,17.2,0,0.8,18.9,0.87,M.film,true); box(0.2,17.2,0.87,0.82,18.9,0.9,M.marble);
+  item('주방 가구',()=>{ box(0.2,18.9,0,3.0,19.5,0.87,M.kCab,true); box(0.2,18.88,0.87,3.0,19.5,0.9,M.kTop);
+  box(0.2,17.2,0,0.8,18.9,0.87,M.kCab,true); box(0.2,17.2,0.87,0.82,18.9,0.9,M.kTop);
   box(1.1,19.0,0.9,1.7,19.45,0.905,M.black); box(2.1,19.05,0.88,2.75,19.4,0.905,M.steel);
-  box(0.2,19.15,1.5,3.0,19.5,2.3,M.film); }); item('냉장고',()=>{ box(2.95,18.85,0,3.6,19.5,2.1,M.beige,true); });
+  box(0.2,19.15,1.5,3.0,19.5,2.3,M.kUp); }); item('냉장고',()=>{ box(2.95,18.85,0,3.6,19.5,2.1,M.beige,true); });
   table(1.2,15.7,2.4,16.5,M.marble); chair(1.5,15.45); chair(2.1,15.45); chair(1.5,16.75); chair(2.1,16.75);
   sofa(0.2,12.6,1.05,14.6,'W'); item('TV·거실장',()=>{ box(3.48,12.45,0,3.6,13.55,0.45,M.film,true); box(3.56,12.55,0.95,3.6,13.45,1.6,M.black); });
   // rooms
@@ -1019,7 +1024,7 @@ function northUnit(){
 const NORTH_ROOMS=[
   ['현관',[7.96,13.02,9.34,13.68],[9.0,14.1,1.57]],
   ['복도',[3.72,13.68,9.34,14.55],[8.4,14.1,1.57]],
-  ['거실·주방',[0.2,12.4,3.6,19.5],[2.9,13.2,0.5]],
+  ['거실',[0.2,12.4,3.6,16.9],[2.9,13.2,0.5]], ['주방',[0.2,16.9,3.6,19.5],[2.9,16.7,0.6]],
   ['방',[3.72,16.59,6.32,19.5],[4.2,17.0,-0.6]],
   ['안방',[6.44,16.48,9.34,19.5],[6.9,16.9,-0.7]],
   ['욕실',[3.72,14.67,5.97,16.47],[4.2,14.95,-0.4],1],
@@ -1105,8 +1110,8 @@ function unit402(){
   // 안방 (넓은 안방: 침대 + 드레스룸 장 + 소파)
   bed(10.6,17.4,12.2,19.5,'N'); item('드레스장',()=>{ box(9.46,16.6,0,10.06,19.4,2.2,M.film,true); }); sofa(13.6,17.0,14.9,17.9,'E'); table(13.0,18.9,14.8,19.5,M.oak);
   // 주방·거실
-  item('주방 가구',()=>{ box(15.2,18.9,0,18.6,19.5,0.87,M.film,true); box(15.2,18.88,0.87,18.6,19.5,0.9,M.marble); box(18.0,17.3,0,18.6,18.9,0.87,M.film,true); box(17.98,17.3,0.87,18.6,18.9,0.9,M.marble);
-  box(16.0,19.0,0.9,16.6,19.45,0.905,M.black); box(17.3,19.05,0.88,17.95,19.4,0.905,M.steel); box(15.2,19.15,1.5,18.6,19.5,2.3,M.film); });
+  item('주방 가구',()=>{ box(15.2,18.9,0,18.6,19.5,0.87,M.kCab,true); box(15.2,18.88,0.87,18.6,19.5,0.9,M.kTop); box(18.0,17.3,0,18.6,18.9,0.87,M.kCab,true); box(17.98,17.3,0.87,18.6,18.9,0.9,M.kTop);
+  box(16.0,19.0,0.9,16.6,19.45,0.905,M.black); box(17.3,19.05,0.88,17.95,19.4,0.905,M.steel); box(15.2,19.15,1.5,18.6,19.5,2.3,M.kUp); });
   item('냉장고',()=>{ box(15.2,18.2,0,15.85,18.85,2.1,M.beige,true); });
   table(16.2,15.8,17.5,16.6,M.marble); chair(16.5,15.55); chair(17.2,15.55); chair(16.5,16.85); chair(17.2,16.85);
   sofa(17.75,12.6,18.6,14.6,'E'); item('TV·거실장',()=>{ box(15.2,12.45,0,15.32,13.55,0.45,M.film,true); box(15.2,12.55,0.95,15.24,13.45,1.6,M.black); });
@@ -1130,8 +1135,8 @@ function unit302(){
   [[10.8,18],[13.7,18],[13.7,15.5],[16.9,18],[16.9,14.2],[10.8,15.5]].forEach(([x,y])=>downl(x,y,2.3));
   bed(9.46,17.2,11.56,18.8,'W'); item('붙박이장',()=>{ box(10.2,18.9,0,12.18,19.5,2.2,M.film,true); });
   // 주방·거실
-  item('주방 가구',()=>{ box(12.3,18.9,0,15.08,19.5,0.87,M.film,true); box(12.3,18.88,0.87,15.08,19.5,0.9,M.marble);
-  box(12.9,19.0,0.9,13.5,19.45,0.905,M.black); box(14.0,19.05,0.88,14.65,19.4,0.905,M.steel); box(12.3,19.15,1.5,15.08,19.5,2.3,M.film); });
+  item('주방 가구',()=>{ box(12.3,18.9,0,15.08,19.5,0.87,M.kCab,true); box(12.3,18.88,0.87,15.08,19.5,0.9,M.kTop);
+  box(12.9,19.0,0.9,13.5,19.45,0.905,M.black); box(14.0,19.05,0.88,14.65,19.4,0.905,M.steel); box(12.3,19.15,1.5,15.08,19.5,2.3,M.kUp); });
   item('냉장고',()=>{ box(14.45,18.2,0,15.08,18.85,2.1,M.beige,true); });
   table(13.0,16.6,14.3,17.4,M.marble); chair(13.3,16.35); chair(14.0,16.35); chair(13.3,17.65); chair(14.0,17.65);
   sofa(12.3,14.75,14.3,15.55,'S');
@@ -1142,11 +1147,11 @@ function unit302(){
   toilet(9.9,15.0,'N'); basin(10.5,14.67,11.0,15.1); item('욕조',()=>{ box(11.2,14.67,0,12.18,15.9,0.55,M.china,true); });
 }
 const NE402_ROOMS=[['현관',[9.46,13.02,10.84,13.68],[9.8,14.1,-1.57]],['복도',[10.84,13.68,15.08,14.55],[10.4,14.1,-1.57]],
-  ['거실·주방',[15.2,12.4,18.6,19.5],[15.9,14.1,-0.6]],['안방',[9.46,16.48,15.08,19.5],[12.4,16.9,0.3]],
+  ['거실',[15.2,12.4,18.6,16.9],[15.9,14.1,-0.6]],['주방',[15.2,16.9,18.6,19.5],[15.8,16.7,-0.6]],['안방',[9.46,16.48,15.08,19.5],[12.4,16.9,0.3]],
   ['안방 욕실',[9.46,14.67,11.89,16.36],[11.6,14.95,0.9],1],['욕실',[12.87,14.67,15.08,16.36],[14.1,14.95,0],1],
   ['드레스 통로',[12.01,14.67,12.75,16.42],[12.38,15.0,0]],['작은방',[11.97,11.1,15.08,13.56],[14.6,13.2,2.4]]];
 const NE302_ROOMS=[['현관',[9.46,13.02,10.84,13.68],[9.8,14.1,-1.57]],['복도',[10.84,13.68,12.3,14.55],[10.4,14.1,-1.57]],
-  ['주방·거실',[12.3,13.68,15.08,19.5],[12.7,14.2,-0.4]],['안방',[9.46,16.48,12.18,19.5],[11.8,17.0,1.0]],
+  ['거실',[12.3,13.68,15.08,15.9],[12.7,14.2,-0.4]],['주방',[12.3,15.9,15.08,19.5],[12.7,16.1,-0.4]],['안방',[9.46,16.48,12.18,19.5],[11.8,17.0,1.0]],
   ['안방 욕실',[9.46,14.67,12.18,16.36],[11.35,16.1,PI]],['방',[15.2,16.28,18.6,19.5],[15.6,17.0,-0.9],0],
   ['방 2',[15.2,12.4,18.6,16.16],[15.6,14.1,-1.2]],['작은방',[11.97,11.1,15.08,13.56],[12.5,13.2,2.6]]];
 
@@ -1960,6 +1965,10 @@ const LABELS=[];
     const g=groups.get(key)||{f:R.f,text:/호$/.test(R.unit)?R.unit:R.name,x1:1e9,y1:1e9,x2:-1e9,y2:-1e9};
     g.x1=Math.min(g.x1,R.r[0]); g.y1=Math.min(g.y1,R.r[1]); g.x2=Math.max(g.x2,R.r[2]); g.y2=Math.max(g.y2,R.r[3]); groups.set(key,g); });
   groups.forEach(g=>{ const d=document.createElement('div'); d.textContent=g.text; labelsEl.appendChild(d); LABELS.push({...g,el:d}); });
+  // 확대했을 때만 보이는 세대 안 방 이름(주방·거실·안방…)
+  ROOMS.forEach(R=>{ if(!/호$/.test(R.unit)||/복도|현관|드레스/.test(R.name)) return;
+    const d=document.createElement('div'); d.className='sub'; d.textContent=R.name; labelsEl.appendChild(d);
+    LABELS.push({f:R.f,text:R.name,x1:R.r[0],y1:R.r[1],x2:R.r[2],y2:R.r[3],el:d,sub:true}); });
 })();
 
 // minimap
@@ -1978,7 +1987,7 @@ function drawMap(){
   if(HOME.id!=='visitor'&&HOME.f===f){ g2.fillStyle=acc; g2.globalAlpha=.16; ROOMS.filter(R=>R.f===f&&R.unit===HOME.id+'호').forEach(R=>{ const [a,b]=T.to(R.r[0],R.r[3]), [c,d]=T.to(R.r[2],R.r[1]); g2.fillRect(a,b,c-a,d-b); }); g2.globalAlpha=1; }
   g2.fillStyle=wallc; FLOORS[f].walls.forEach(([x1,x2,y1,y2])=>{ const [a,b]=T.to(x1,y2), [c,d]=T.to(x2,y1); g2.fillRect(a,b,Math.max(1.5,c-a),Math.max(1.5,d-b)); });
   g2.font='500 '+(f===0?13:14)+'px '+css('--sans'); g2.textAlign='center'; g2.textBaseline='middle'; g2.fillStyle=fg; g2.globalAlpha=.75;
-  LABELS.filter(L=>L.f===f).forEach(L=>{ const [x,y]=T.to((L.x1+L.x2)/2,(L.y1+L.y2)/2); g2.fillText(L.text,x,y); });
+  LABELS.filter(L=>L.f===f&&!L.sub).forEach(L=>{ const [x,y]=T.to((L.x1+L.x2)/2,(L.y1+L.y2)/2); g2.fillText(L.text,x,y); });
   g2.globalAlpha=1;
   if(ROUTE){ g2.strokeStyle='#d9822b'; g2.lineWidth=5; g2.lineJoin='round'; g2.lineCap='round';
     ROUTE.legs.forEach(L=>{ let pts=null;
@@ -2349,7 +2358,7 @@ function frame(now){
     camera.position.set(orbit.tx+orbit.r*st*Math.sin(orbit.theta),orbit.tz+orbit.r*Math.cos(orbit.phi),-orbit.ty+orbit.r*st*Math.cos(orbit.theta));
     if(TOUR) tourTick(dt);
     camera.lookAt(orbit.tx,orbit.tz,-orbit.ty);
-    LABELS.forEach(L=>{ const on = L.f===cut; L.el.hidden=!on; if(!on) return;
+    LABELS.forEach(L=>{ const on = L.f===cut && (!L.sub || orbit.r<32); L.el.hidden=!on; if(!on) return;
       v3.set((L.x1+L.x2)/2, LV[L.f]+1.0, -(L.y1+L.y2)/2).project(camera);
       L.el.style.left=((v3.x+1)/2*innerWidth)+'px'; L.el.style.top=((1-v3.y)/2*innerHeight)+'px'; });
   }
