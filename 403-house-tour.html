@@ -66,7 +66,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .route p b{font-weight:700}
 .rbtns{display:flex;flex-wrap:wrap;gap:6px}
 .rbtns button{border:1px solid var(--line);background:var(--panel);color:var(--fg);font:500 12.5px var(--sans);padding:6px 10px;border-radius:7px;cursor:pointer}
-.rbtns button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.rbtns button.primary,#rJump{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 details summary{font-size:12px;color:var(--muted);cursor:pointer;margin-bottom:6px}
 .edit *,.edit *::before,.edit *::after{box-sizing:border-box}
 .tourbtn{border:0;background:var(--accent);color:var(--accent-fg);font:700 14px var(--sans);padding:10px;border-radius:9px;cursor:pointer}
@@ -209,7 +209,7 @@ body.touring #where,body.touring #joy,body.editing #joy{display:none!important}
   <div class="rooms" id="dests" role="group" aria-label="목적지"></div>
   <div class="route" id="route" hidden>
     <p id="routeText"></p>
-    <div class="rbtns"><button id="rFollow" class="primary">따라 걷기</button><button id="rJump">바로 가기</button><button id="rClear">경로 지우기</button></div>
+    <div class="rbtns"><button id="rJump" class="primary">바로 가기</button><button id="rClear">경로 지우기</button></div>
   </div>
   <div class="seg" role="group" aria-label="보기 방식">
     <button id="mWalk" aria-pressed="true">걸어보기</button>
@@ -1671,8 +1671,8 @@ function drawRoute(){
 
 /* ---------- follow the route (따라 걷기) ---------- */
 let AUTO=null;
-function startAuto(){ if(!ROUTE) return; setMode('walk'); placeAtStart(); AUTO={li:0,pi:1,wait:0,look:0}; $('#rFollow').textContent='멈추기'; }
-function stopAuto(internal){ AUTO=null; $('#rFollow').textContent='따라 걷기'; if(!internal&&TOUR&&TOUR.phase==='move'&&!TOUR.paused) pauseTour(); }
+function startAuto(){ if(!ROUTE) return; setMode('walk'); placeAtStart(); AUTO={li:0,pi:1,wait:0,look:0}; }
+function stopAuto(internal){ AUTO=null; if(!internal&&TOUR&&TOUR.phase==='move'&&!TOUR.paused) pauseTour(); }
 function placeAtStart(){ const L=ROUTE.legs[0]; P.f=L.f; P.stair=null; P.x=L.pts[0][0]; P.y=L.pts[0][1];
   const [nx,ny]=L.pts[1]; P.yaw=Math.atan2(-(nx-P.x),ny-P.y); P.pitch=-0.08; camZ=footZ()+EYE; }
 function stepAuto(dt){
@@ -1837,7 +1837,6 @@ function setRoute(D){
   $('#routeText').innerHTML=`<b>${from}</b>${via}${st} → <b>${D.name}</b><br>걷는 거리 약 ${Math.round(ROUTE.len)} m · 약 ${sec<60?sec+'초':Math.round(sec/60)+'분'}`;
   $('#route').hidden=false;
 }
-$('#rFollow').onclick=()=>{ if(AUTO) stopAuto(); else startAuto(); };
 $('#rJump').onclick=()=>{ if(!ROUTE) return; stopAuto(); setMode('walk'); const L=ROUTE.legs[ROUTE.legs.length-1], p=L.pts[L.pts.length-1];
   P.f=L.f; P.stair=null; P.x=p[0]; P.y=p[1]; P.yaw=ROUTE.dest.yaw; P.pitch=-0.06; refreshUI(); };
 $('#rClear').onclick=()=>{ ROUTE=null; stopAuto(); drawRoute(); $('#route').hidden=true; refreshUI(); };
@@ -1872,7 +1871,7 @@ function refreshUI(){
 $('#hint').innerHTML = (isTouch
   ? '왼쪽 아래 스틱으로 이동하고 화면을 끌어서 둘러보세요.'
   : '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>·방향키 이동, <kbd>Shift</kbd> 빠르게, 화면을 끌어서 둘러보기.')
-  + ' 우리 집을 고르고 가고 싶은 곳을 누르면 길을 안내해요. 계단은 걸어서, 층 버튼은 엘리베이터처럼 이동해요.';
+  + ' 우리 집을 고르고 가고 싶은 곳을 누르면 길을 표시해요. 건물 전체는 자동 투어로 둘러볼 수 있어요. 계단은 걸어서, 층 버튼은 엘리베이터처럼 이동해요.';
 function setMode(m){ mode=m; $('#mWalk').setAttribute('aria-pressed',m==='walk'); $('#mTop').setAttribute('aria-pressed',m==='top');
   joy.hidden=!(isTouch&&m==='walk'); $('#where').hidden=m!=='walk'; labelsEl.hidden=m!=='top';
   if(m==='top'&&ROUTE){ const tf=ROUTE.dest.f; cut=tf===4?-1:tf; orbit.tz=cut<0?5:LV[cut]+1; }
