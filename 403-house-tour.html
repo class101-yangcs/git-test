@@ -220,6 +220,7 @@ body.touring #where,body.touring #joy,body.editing #joy{display:none!important}
   </div>
   <div class="lbl">층별로 보기</div>
   <div class="floors" id="floors" role="group" aria-label="층 선택"></div>
+  <p class="hint" id="hint"></p>
   <button class="toggle" id="fold" aria-expanded="true">▲ 메뉴 접기</button>
 </section>
 
@@ -1650,22 +1651,37 @@ addEventListener('keyup',e=>{ keys[e.code]=false; });
 addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });
 
 const orbit={theta:-0.5,phi:0.95,r:46,tx:9.4,ty:9.85,tz:5};
-const ptrs=new Map(); let pinch0=0;
-stage.addEventListener('pointerdown',e=>{ stage.setPointerCapture(e.pointerId); if(editPointerDown(e)) return; ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch0=Math.hypot(a.x-b.x,a.y-b.y); } });
+const ptrs=new Map(); let pinch0=0, twist0=null, mid0=null;
+/* 위에서 보기 조작: 한 손가락(마우스 왼쪽) 끌기 = 화면 이동, 두 손가락 = 확대·축소 + 비틀어 회전 + 함께 위아래로 밀어 기울이기,
+   마우스 오른쪽 끌기(또는 Shift+끌기) = 회전·기울이기 */
+function panBy(dx,dy){
+  const s=2*orbit.r*Math.tan(camera.fov*Math.PI/360)/Math.max(1,innerHeight), sv=s/Math.max(0.45,Math.cos(orbit.phi));
+  const c=Math.cos(orbit.theta), n=Math.sin(orbit.theta);
+  orbit.tx-= dx*s*c + dy*sv*n; orbit.ty+= -dx*s*n + dy*sv*c;
+  orbit.tx=Math.max(-12,Math.min(31,orbit.tx)); orbit.ty=Math.max(-14,Math.min(32,orbit.ty)); }
+function twoFinger(){ const [a,b]=[...ptrs.values()]; return {d:Math.hypot(a.x-b.x,a.y-b.y),ang:Math.atan2(b.y-a.y,b.x-a.x),mx:(a.x+b.x)/2,my:(a.y+b.y)/2}; }
+stage.addEventListener('contextmenu',e=>e.preventDefault());
+stage.addEventListener('pointerdown',e=>{ try{ stage.setPointerCapture(e.pointerId); }catch(_){} if(editPointerDown(e)) return;
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,rot:e.pointerType==='mouse'&&(e.button===2||e.shiftKey||e.ctrlKey)});
+  if(ptrs.size===2){ const t=twoFinger(); pinch0=t.d; twist0=t.ang; mid0=[t.mx,t.my]; } });
 stage.addEventListener('pointermove',e=>{
   if(editPointerMove(e)) return;
   const p=ptrs.get(e.pointerId); if(!p) return;
   const dx=e.clientX-p.x, dy=e.clientY-p.y; p.x=e.clientX; p.y=e.clientY;
-  if(ptrs.size===2&&mode==='top'){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y);
-    if(pinch0) orbit.r=Math.min(90,Math.max(8,orbit.r*pinch0/d)); pinch0=d; return; }
+  if(ptrs.size===2&&mode==='top'){ const t=twoFinger();
+    if(pinch0) orbit.r=Math.min(90,Math.max(6,orbit.r*pinch0/t.d));
+    if(twist0!==null){ let da=t.ang-twist0; if(da>Math.PI) da-=2*Math.PI; if(da<-Math.PI) da+=2*Math.PI; orbit.theta+=da; }
+    if(mid0){ const mdx=t.mx-mid0[0], mdy=t.my-mid0[1]; orbit.phi=Math.max(0.12,Math.min(1.5,orbit.phi-mdy*0.004)); panBy(mdx,0); }
+    pinch0=t.d; twist0=t.ang; mid0=[t.mx,t.my]; return; }
+  if(ptrs.size>2) return;
   const k=isTouch?0.006:0.0042;
   if(mode==='walk'){ P.yaw+=dx*k; P.pitch=Math.max(-1.3,Math.min(1.3,P.pitch+dy*k)); if(AUTO) AUTO.look=1.2; }
-  else { orbit.theta-=dx*0.006; orbit.phi=Math.max(0.12,Math.min(1.5,orbit.phi-dy*0.005)); }
+  else if(p.rot){ orbit.theta-=dx*0.006; orbit.phi=Math.max(0.12,Math.min(1.5,orbit.phi-dy*0.005)); }
+  else panBy(dx,dy);
 });
-const pup=e=>{ editPointerUp(e); ptrs.delete(e.pointerId); if(ptrs.size<2) pinch0=0; };
+const pup=e=>{ editPointerUp(e); ptrs.delete(e.pointerId); if(ptrs.size<2){ pinch0=0; twist0=null; mid0=null; } };
 stage.addEventListener('pointerup',pup); stage.addEventListener('pointercancel',pup);
-stage.addEventListener('wheel',e=>{ e.preventDefault(); if(mode==='top') orbit.r=Math.min(90,Math.max(8,orbit.r*(1+e.deltaY*0.001))); },{passive:false});
+stage.addEventListener('wheel',e=>{ e.preventDefault(); if(mode==='top') orbit.r=Math.min(90,Math.max(6,orbit.r*(1+e.deltaY*0.001))); },{passive:false});
 const joy=$('#joy'), knob=joy.querySelector('i'); const J={x:0,y:0,id:null};
 joy.addEventListener('pointerdown',e=>{ J.id=e.pointerId; joy.setPointerCapture(e.pointerId); joyMove(e); if(AUTO) stopAuto(); });
 joy.addEventListener('pointermove',e=>{ if(e.pointerId===J.id) joyMove(e); });
@@ -1920,6 +1936,8 @@ function refreshUI(){
   DBTN.forEach((b,i)=>b.setAttribute('aria-pressed',PICK===DESTS[i]));
   $('#mapFloor').textContent=FNAME[Math.max(0,vf)];
 }
+$('#hint').textContent = isTouch ? '한 손가락: 화면 이동 · 두 손가락: 확대·축소, 비틀면 회전, 함께 위아래로 밀면 기울이기'
+  : '끌기: 화면 이동 · 휠: 확대·축소 · 오른쪽 버튼(또는 Shift)+끌기: 회전·기울이기';
 function setMode(m){ mode=m;
   joy.hidden=!(isTouch&&m==='walk'); $('#where').hidden=m!=='walk'; labelsEl.hidden=m!=='top';
   if(m==='top'&&ROUTE){ const tf=ROUTE.dest.f; cut=tf===4?-1:tf; orbit.tz=cut<0?5:LV[cut]+1; }
@@ -2344,7 +2362,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-if(window.__TEST__) window.__tour={viewpoint:(B,f)=>viewpoint(B,f),tourStops:()=>tourStops(),routeBetween:(a,b)=>routeBetween(a,b),startTour:()=>startTour(),TOURST:()=>TOUR,P,tryStep,footZ,FLOORS,buildRoute,HOMES,DESTS,ITEMS,select,placeProduct:(p)=>placeProduct(p),CATALOG,setEdit,LAYOUT:()=>LAYOUT};
+if(window.__TEST__) window.__tour={orbit,viewpoint:(B,f)=>viewpoint(B,f),tourStops:()=>tourStops(),routeBetween:(a,b)=>routeBetween(a,b),startTour:()=>startTour(),TOURST:()=>TOUR,P,tryStep,footZ,FLOORS,buildRoute,HOMES,DESTS,ITEMS,select,placeProduct:(p)=>placeProduct(p),CATALOG,setEdit,LAYOUT:()=>LAYOUT};
 })();
 </script>
 
