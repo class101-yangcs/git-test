@@ -1993,7 +1993,7 @@ function refreshUI(){
 }
 $('#hint').textContent = isTouch ? '한 손가락: 화면 이동 · 두 손가락: 확대·축소, 비틀면 회전 · 두 번 톡톡: 그 자리로 들어가기'
   : '끌기: 화면 이동 · 휠: 확대·축소 · 오른쪽 버튼(또는 Shift)+끌기: 회전·기울이기 · 더블클릭: 그 자리로 들어가기';
-function setMode(m){ mode=m;
+function setMode(m){ mode=m; if(FLOORS.high) FLOORS.high.forEach(ch=>ch.visible=m==='walk');
   joy.hidden=true; $('#inBar').hidden=!(m==='walk'&&!TOUR); $('#where').hidden=m!=='walk'; labelsEl.hidden=m!=='top';
   if(m==='top'&&ROUTE){ const tf=ROUTE.dest.f; cut=tf===4?-1:tf; orbit.tz=cut<0?5:LV[cut]+1; }
   routeMat.depthTest=chevMat.depthTest=m==='walk';
@@ -2381,6 +2381,9 @@ renderResults();
 /* ---------- loop ---------- */
 function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize();
+// 벽에 매단 가구(상부장·후드·프로젝터…): 위에서 보면 떠 보이므로 위에서 보기에서는 숨기고, 안에서만 보인다
+FLOORS.high=[]; ITEMS.forEach(it=>{ it.updateMatrix(); it.children.forEach(ch=>{ if(!ch.isMesh||!ch.geometry) return; ch.geometry.computeBoundingBox();
+  const bot=it.position.y+ch.position.y+ch.geometry.boundingBox.min.y*ch.scale.y; if(bot>=1.3) FLOORS.high.push(ch); }); });
 setMode('top');
 $('#loading').remove();
 let last=performance.now(), lastWhere='', mapTick=0, camZ=footZ()+EYE, lastF=-9;
