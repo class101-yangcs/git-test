@@ -268,10 +268,9 @@ body.touring #where,body.touring #joy,body.editing #joy{display:none!important}
 <div id="joy" hidden><i></i></div>
 
 <script src="firebase-config.js"></script>
-<script>
-// Firebase SDK는 firebase-config.js 에 설정이 있을 때만 불러온다
-if(window.FIREBASE_CONFIG){ ['app','auth','firestore'].forEach(function(m){ document.write('<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-'+m+'-compat.js"><\/script>'); }); }
-</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>/* three.js r128 (MIT) */
 /**
  * @license
