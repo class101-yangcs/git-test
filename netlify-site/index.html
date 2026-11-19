@@ -168,8 +168,9 @@ body.touring #where,body.touring #joy,body.editing #joy{display:none!important}
 .card.min{gap:8px;padding:10px 12px}
 .toggle{padding:4px 0}
 @media (max-width:700px){
-  .card{width:calc(100vw - 32px);max-height:calc(100% - 210px)}
-  .card:not(.min){max-height:calc(100% - 24px);z-index:8}
+  /* 좁은 화면: 오른쪽 위 [가구 편집] 버튼 줄 아래에서 메뉴를 연다 — 메뉴 접기 버튼과 겹치지 않게 */
+  .card{top:calc(60px + env(safe-area-inset-top,0px));width:calc(100vw - 32px);max-height:calc(100% - 250px)}
+  .card:not(.min){max-height:calc(100% - 72px);z-index:8}
   .card.min .head .dim{display:none}
   .card.min{flex-direction:row;flex-wrap:wrap;align-items:center}
   .card.min .head{flex:1 1 100%}
@@ -2174,7 +2175,7 @@ function startShared(db){
 /* ---------- selection & editing UI ---------- */
 let EDIT=false, SEL=null, selBox=null, DRAG=null;
 const editEl=$('#edit'), selEl=$('#sel');
-function setEdit(on){ EDIT=on; editEl.hidden=!on; document.body.classList.toggle('editing',on); $('#editBtn').setAttribute('aria-pressed',on); if(!on) select(null); renderResults(); }
+function setEdit(on){ EDIT=on; editEl.hidden=!on; document.body.classList.toggle('editing',on); $('#editBtn').setAttribute('aria-pressed',on); if(!on) select(null); if(on&&NARROW.matches) setTiny(true); renderResults(); }
 $('#editBtn').onclick=()=>setEdit(!EDIT);
 $('#nick').onchange=e=>{ NICK=e.target.value.trim().slice(0,20); try{ localStorage.setItem('yeonmaeul-nick',NICK); }catch(_){} }; $('#eClose').onclick=()=>setEdit(false);
 function select(it){
