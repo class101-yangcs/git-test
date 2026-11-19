@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 가구 배치: 누구나 볼 수 있고, 페이지를 연 사람(익명 로그인)이 바꿀 수 있다
+    match /buildings/{building}/items/{itemId} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['f','name','p','r','s','by','byName','at','kind','del','src','spec','of'])
+                   && request.resource.size() < 20000;
+      allow delete: if request.auth != null;
+    }
+    // 변경 기록: 추가만 가능, 고치거나 지울 수 없다
+    match /buildings/{building}/log/{logId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.by == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

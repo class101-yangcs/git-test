@@ -103,6 +103,8 @@ details summary{font-size:12px;color:var(--muted);cursor:pointer;margin-bottom:6
 .empty{font-size:12px;color:var(--muted);margin:0}
 .manual{display:flex;flex-direction:column;gap:6px}
 .manual .primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.nick{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted)}
+.nick input{font:400 13px var(--sans);padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--fg)}
 .log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted);max-height:160px;overflow:auto}
 .efoot{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
 @media (max-width:560px){ .edit{top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-height:58%} body.editing #map,body.editing #where{display:none} }
@@ -195,6 +197,7 @@ details summary{font-size:12px;color:var(--muted);cursor:pointer;margin-bottom:6
       </form>
     </details>
   </section>
+  <label class="nick" id="nickRow" hidden>변경 기록에 남길 이름<input id="nick" maxlength="20" placeholder="예: 403호 연마을"></label>
   <details id="logWrap"><summary>최근 변경 기록</summary><ul class="log" id="log"></ul></details>
   <div class="efoot"><span id="saveNote"></span><button id="resetLayout">배치 초기화</button></div>
 </aside>
@@ -206,6 +209,11 @@ details summary{font-size:12px;color:var(--muted);cursor:pointer;margin-bottom:6
 </div>
 <div id="joy" hidden><i></i></div>
 
+<script src="firebase-config.js"></script>
+<script>
+// Firebase SDK는 firebase-config.js 에 설정이 있을 때만 불러온다
+if(window.FIREBASE_CONFIG){ ['app','auth','firestore'].forEach(function(m){ document.write('<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-'+m+'-compat.js"><\/script>'); }); }
+</script>
 <script>/* three.js r128 (MIT) */
 /**
  * @license
@@ -1835,21 +1843,21 @@ function applyLayout(L){
 /* ---------- 공용 데이터베이스: 모두가 같은 배치를 보고, 작업한 내용이 남는다 ----------
    items/<가구 id> : 바뀐 가구 한 점(옮김·회전·크기·삭제 표시) 또는 새로 놓은 가구
    log/<auto>      : 누가 언제 무엇을 했는지 */
-let SHARED=null, ME=null, USER=null, CAN_RESET=false, applyingRemote=false;
+let SHARED=null, ME=null, USER=null, CAN_RESET=false, applyingRemote=false, FIREBASE=false;
 const writeChains=new Map(), lastLogAt=new Map();
-function itemDoc(it){ const u=it.userData, base={f:u.f,name:u.name||'',p:[it.position.x,it.position.y,it.position.z],r:it.rotation.y,s:[it.scale.x,it.scale.y,it.scale.z],by:ME||'',at:Date.now()};
+function itemDoc(it){ const u=it.userData, base={f:u.f,name:u.name||'',p:[it.position.x,it.position.y,it.position.z],r:it.rotation.y,s:[it.scale.x,it.scale.y,it.scale.z],by:ME||'',byName:NICK||'',at:Date.now()};
   if(!u.added) return {...base,kind:'mod',del:!it.visible};
   return {...base,kind:'add',src:u.spec?'cat':'clone',spec:u.spec||null,of:u.cloneOf||null}; }
 function shareWrite(it){ if(!SHARED||applyingRemote) return; const id=it.userData.id, data=itemDoc(it);
   const prev=writeChains.get(id)||Promise.resolve();
-  const next=prev.then(()=>SHARED.items.doc(id).set(data)).then(()=>{ saveNote.textContent='공용 데이터베이스에 저장됨 · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); })
-    .catch(e=>{ saveNote.textContent=e&&e.code==='not_granted'?'보기 권한만 있어 저장되지 않아요 (이 화면에서만 바뀜)':'저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.'; });
+  const next=prev.then(()=>SHARED.items.doc(id).set(data)).then(()=>{ saveNote.textContent=(FIREBASE?'Firebase에 저장됨 · ':'공용 데이터베이스에 저장됨 · ')+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); })
+    .catch(e=>{ saveNote.textContent=e&&(e.code==='not_granted'||e.code==='permission-denied')?'보기 권한만 있어 저장되지 않아요 (이 화면에서만 바뀜)':'저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.'; });
   writeChains.set(id,next); }
 function shareDelete(id){ if(!SHARED) return; const prev=writeChains.get(id)||Promise.resolve();
   writeChains.set(id,prev.then(()=>SHARED.items.doc(id).delete()).catch(()=>{ saveNote.textContent='삭제를 저장하지 못했어요.'; })); }
 function shareLog(action,it,force){ if(!SHARED) return; const key=action+(it?it.userData.id:'');
   if(!force&&Date.now()-(lastLogAt.get(key)||0)<20000) return; lastLogAt.set(key,Date.now());
-  SHARED.log.add({at:Date.now(),by:ME||'',action,name:it?it.userData.name:'',f:it?it.userData.f:null}).catch(()=>{}); }
+  SHARED.log.add({at:Date.now(),by:ME||'',byName:NICK||'',action,name:it?it.userData.name:'',f:it?it.userData.f:null}).catch(()=>{}); }
 function applyDoc(id,d){
   let it=byId(id);
   if(d.kind==='add'&&!it){ if(d.src==='clone'){ const src=byId(d.of); if(!src) return; it=cloneItem(src,{uid:id,p:d.p,r:d.r,s:d.s}); }
@@ -1866,22 +1874,36 @@ async function renderLog(docs){
   const el=$('#log'); if(!el) return; el.innerHTML='';
   if(!docs.length){ el.innerHTML='<li class="empty">아직 변경 기록이 없어요.</li>'; return; }
   let names={}; try{ if(USER&&USER.profiles) names=await USER.profiles([...new Set(docs.map(d=>d.by).filter(Boolean))]); }catch(e){}
-  docs.forEach(d=>{ const li=document.createElement('li'); const who=(names[d.by]&&names[d.by].name)||'누군가';
+  docs.forEach(d=>{ const li=document.createElement('li'); const who=(names[d.by]&&names[d.by].name)||d.byName||'누군가';
     const t=new Date(d.at); const when=t.toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' '+t.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
     li.textContent=`${when} · ${who} · ${d.name?d.name+' ':''}${LOG_LABEL[d.action]||d.action}${d.f!=null&&d.f>=0?' ('+FNAME[d.f]+')':''}`; el.appendChild(li); });
 }
+// Firebase(Firestore) — 단독 파일·Netlify 배포용. firebase-config.js 에 웹앱 설정이 있으면 사용한다.
+let NICK=''; try{ NICK=localStorage.getItem('yeonmaeul-nick')||''; }catch(e){}
+async function initFirebase(){
+  const cfg=window.FIREBASE_CONFIG; if(!cfg||!window.firebase) return null;
+  const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg);
+  await firebase.auth(app).signInAnonymously();
+  const root=firebase.firestore(app).collection('buildings').doc(cfg.buildingId||'yeonmaeul');
+  return {items:root.collection('items'),log:root.collection('log'),uid:firebase.auth(app).currentUser.uid};
+}
 (async()=>{
-  let db=null;
+  let db=null, fb=null;
+  try{ if(window.FIREBASE_CONFIG){ saveNote.textContent='Firebase에 연결하는 중…'; fb=await initFirebase(); } }catch(e){ saveNote.textContent='Firebase에 연결하지 못했어요 · '+((e&&e.code)||'설정을 확인해 주세요'); }
+  if(fb){ SHARED={items:fb.items,log:fb.log}; ME=fb.uid; CAN_RESET=false; FIREBASE=true; $('#nickRow').hidden=false; $('#nick').value=NICK; return startShared(null); }
   try{ if(window.claude&&window.claude.use){ const [d,u]=await Promise.all([window.claude.use('db'),window.claude.use('user')]); db=d; USER=u; ME=u?await u.id():null; CAN_RESET=u?await u.canEdit():false; } }catch(e){}
   if(!db){ // 단독 파일(Netlify 등): 이 브라우저에만 저장
     try{ const t=localStorage.getItem(LS_KEY); if(t){ applyLayout(JSON.parse(t)); saveNote.textContent='이 브라우저에 저장된 배치를 불러왔어요'; } else saveNote.textContent='이 파일에서는 이 브라우저에만 저장돼요'; }catch(e){ saveNote.textContent='저장소를 쓸 수 없어 새로고침하면 사라져요'; }
     $('#logWrap').hidden=true; return; }
   SHARED={items:db.collection('items'),log:db.collection('log')};
+  startShared(db);
+})();
+function startShared(db){
   $('#resetLayout').hidden=!CAN_RESET;
   saveNote.textContent='공용 배치를 불러오는 중…';
   const timer=setTimeout(()=>{ saveNote.textContent='공용 배치를 불러오지 못했어요. 새로고침해 주세요.'; },10000);
   // move a layout saved by the previous (per-person) version into the shared database, once
-  const migrate=async()=>{ if(!ME) return; try{ const pd=db.doc('data/users/'+ME+'/layout'); const ps=await pd.get(); const v=ps.exists?ps.data():null;
+  const migrate=async()=>{ if(!ME||!db) return; try{ const pd=db.doc('data/users/'+ME+'/layout'); const ps=await pd.get(); const v=ps.exists?ps.data():null;
       if(v&&v.state&&!v.migrated){ const L=JSON.parse(v.state); applyingRemote=false;
         applyLayout(L); ITEMS.forEach(it=>{ const u=it.userData; if(u.added||(L.mods&&L.mods[u.id])) shareWrite(it); });
         await pd.set({state:v.state,migrated:true,updatedAt:Date.now()}); } }catch(e){} };
@@ -1896,13 +1918,14 @@ async function renderLog(docs){
     if(first){ first=false; saveNote.textContent=snap.size?`공용 배치를 불러왔어요 (바뀐 가구 ${snap.size}점)`:'공용 배치 · 아직 바뀐 가구가 없어요'; if(snap.empty) migrate(); }
   },()=>{ saveNote.textContent='공용 배치 연결이 끊겼어요. 새로고침해 주세요.'; });
   SHARED.log.orderBy('at','desc').limit(15).onSnapshot(snap=>renderLog(snap.docs.map(d=>d.data())),()=>{});
-})();
+}
 
 /* ---------- selection & editing UI ---------- */
 let EDIT=false, SEL=null, selBox=null, DRAG=null;
 const editEl=$('#edit'), selEl=$('#sel');
 function setEdit(on){ EDIT=on; editEl.hidden=!on; document.body.classList.toggle('editing',on); $('#editBtn').setAttribute('aria-pressed',on); if(!on) select(null); renderResults(); }
-$('#editBtn').onclick=()=>setEdit(!EDIT); $('#eClose').onclick=()=>setEdit(false);
+$('#editBtn').onclick=()=>setEdit(!EDIT);
+$('#nick').onchange=e=>{ NICK=e.target.value.trim().slice(0,20); try{ localStorage.setItem('yeonmaeul-nick',NICK); }catch(_){} }; $('#eClose').onclick=()=>setEdit(false);
 function select(it){
   SEL=it; if(selBox){ scene.remove(selBox); selBox=null; }
   selEl.hidden=!it; $('#eHint').hidden=!!it;
