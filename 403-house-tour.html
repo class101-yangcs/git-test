@@ -168,6 +168,7 @@ body.touring #where,body.touring #joy,body.editing #joy{display:none!important}
 .card.min{gap:8px;padding:10px 12px}
 .toggle{padding:4px 0}
 @media (max-width:700px){
+  #map{display:none!important}   /* 휴대폰: 오른쪽 아래 평면 지도는 숨긴다 */
   /* 좁은 화면: 오른쪽 위 [가구 편집] 버튼 줄 아래에서 메뉴를 연다 — 메뉴 접기 버튼과 겹치지 않게 */
   .card{top:calc(60px + env(safe-area-inset-top,0px));width:calc(100vw - 32px);max-height:calc(100% - 250px)}
   .card:not(.min){max-height:calc(100% - 72px);z-index:8}
